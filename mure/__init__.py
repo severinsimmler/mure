@@ -3,8 +3,8 @@ from typing import Iterable, Iterator
 
 from aiohttp import ClientSession
 
-from multirequests.dtos import Resource, Response
-from multirequests.utils import chunk
+from mure.dtos import Resource, Response
+from mure.utils import chunk
 
 
 def request(resources: Iterable[Resource], *, batch_size: int = 5) -> Iterator[Response]:

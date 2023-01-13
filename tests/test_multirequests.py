@@ -1,6 +1,6 @@
 import pytest
 
-import multirequests
+import mure
 
 
 def test_get():
@@ -10,7 +10,7 @@ def test_get():
         {"url": "invalid"},
     ]
 
-    responses = list(multirequests.get(resources, batch_size=2))
+    responses = list(mure.get(resources, batch_size=2))
 
     assert len(responses) == 3
     assert responses[0]["ok"]
@@ -25,7 +25,7 @@ def test_post():
         {"url": "invalid"},
     ]
 
-    responses = list(multirequests.post(resources, batch_size=2))
+    responses = list(mure.post(resources, batch_size=2))
 
     assert len(responses) == 3
     assert responses[0]["ok"]
@@ -42,7 +42,7 @@ def test_mixed():
         {"method": "GET", "url": "invalid"},
     ]
 
-    responses = list(multirequests.request(resources, batch_size=2))
+    responses = list(mure.request(resources, batch_size=2))
 
     assert len(responses) == 5
     assert responses[0]["ok"]
@@ -54,4 +54,4 @@ def test_mixed():
 
 def test_missing_method():
     with pytest.raises(KeyError):
-        list(multirequests.request([{"url": "https://httpbin.org/get"}]))
+        list(mure.request([{"url": "https://httpbin.org/get"}]))
