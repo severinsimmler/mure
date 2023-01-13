@@ -4,7 +4,7 @@
 [![downloads/month](https://static.pepy.tech/personalized-badge/multirequests?period=month&units=abbreviation&left_color=black&right_color=black&left_text=downloads/month)](https://pepy.tech/project/multirequests)
 [![downloads/week](https://static.pepy.tech/personalized-badge/multirequests?period=week&units=abbreviation&left_color=black&right_color=black&left_text=downloads/week)](https://pepy.tech/project/multirequests)
 
-This is a thin layer on top of `aiohttp` to make multiple HTTP requests in parallel – without writing boilerplate code or worrying about `async` functions.
+This is a thin layer on top of [`aiohttp`](https://docs.aiohttp.org/en/stable/) to perform multiple HTTP requests in parallel – without writing boilerplate code or worrying about `async` functions.
 
 Install the latest stable version from [PyPI](https://pypi.org/project/multirequests):
 
