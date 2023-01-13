@@ -44,7 +44,7 @@ There is also a convenience function for POST requests:
 ...     {"url": "https://httpbin.org/post", "json": {"foo": "bar"}},
 ...     {"url": "invalid"},
 ... ]
->>> responses = mure.get(resources)
+>>> responses = mure.post(resources)
 ```
 
 You can even mix HTTP methods in the list of resources (but have to specify the method for each resource):
