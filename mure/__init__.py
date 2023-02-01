@@ -5,6 +5,9 @@ from aiohttp import ClientSession
 
 from mure.dtos import Resource, Response
 from mure.utils import chunk
+from mure.logging import Logger
+
+LOGGER = Logger(__name__)
 
 
 def request(resources: Iterable[Resource], *, batch_size: int = 5) -> Iterator[Response]:
@@ -92,6 +95,7 @@ async def _process(session: ClientSession, resource: Resource) -> Response:
                 "body": await response.text(),
             }
     except Exception as error:
+        LOGGER.error(error)
         return {"status": 0, "reason": repr(error), "ok": False, "body": ""}
 
 
