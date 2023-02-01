@@ -6,7 +6,7 @@
 
 This is a thin layer on top of [`aiohttp`](https://docs.aiohttp.org/en/stable/) to perform multiple HTTP requests in parallel – without writing boilerplate code or worrying about `async` functions.
 
-> `mure` means **mu**ltiple **re**quests, but is also the German termn for a form of mass wasting involving fast-moving flow of debris and dirt that has become liquified by the addition of water.
+> `mure` means **mu**ltiple **re**quests, but is also the German term for a form of mass wasting involving fast-moving flow of debris and dirt that has become liquified by the addition of water.
 
 Install the latest stable version from [PyPI](https://pypi.org/project/mure):
 
