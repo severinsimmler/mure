@@ -4,7 +4,9 @@
 [![downloads/month](https://static.pepy.tech/personalized-badge/mure?period=month&units=abbreviation&left_color=black&right_color=black&left_text=downloads/month)](https://pepy.tech/project/mure)
 [![downloads/week](https://static.pepy.tech/personalized-badge/mure?period=week&units=abbreviation&left_color=black&right_color=black&left_text=downloads/week)](https://pepy.tech/project/mure)
 
-This is a thin layer on top of [`aiohttp`](https://docs.aiohttp.org/en/stable/) to perform **mu**ltiple HTTP **re**quests in parallel – without writing boilerplate code or worrying about `async` functions.
+This is a thin layer on top of [`aiohttp`](https://docs.aiohttp.org/en/stable/) to perform multiple HTTP requests in parallel – without writing boilerplate code or worrying about `async` functions.
+
+> `mure` means **mu**ltiple **re**quests, but is also the German termn for a form of mass wasting involving fast-moving flow of debris and dirt that has become liquified by the addition of water.
 
 Install the latest stable version from [PyPI](https://pypi.org/project/mure):
 
