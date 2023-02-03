@@ -8,18 +8,15 @@ WARNING = 30
 ERROR = 40
 LEVELS = {"DEBUG": DEBUG, "INFO": INFO, "WARNING": WARNING, "ERROR": ERROR}
 
-DEFAULT_FORMAT = Formatter("[%(asctime)s] [%(levelname)s] %(message)s")
-DEBUG_FORMAT = Formatter("[%(asctime)s] %(name)s:%(lineno)d [%(levelname)s] %(message)s")
-
 
 class Logger:
     def __init__(self, name: str):
-        """Basic logger
+        """Basic logger.
 
         Parameters
         ----------
         name : str
-            Name of the logger
+            Name of the logger.
         """
         self.name = name
 
@@ -45,19 +42,13 @@ class Logger:
         for handler in self._logger.handlers:
             handler.setLevel(level)
 
-            # optionally change the formatter (log more when in debug mode)
-            if level < INFO:
-                handler.setFormatter(DEBUG_FORMAT)
-            else:
-                handler.setFormatter(DEFAULT_FORMAT)
-
     def debug(self, message: str):
-        """Debug log message
+        """Debug log message.
 
         Parameters
         ----------
         message : str
-            Message to log
+            Message to log.
         """
         if self._logger.isEnabledFor(DEBUG):
             self._logger._log(DEBUG, message, ())
@@ -74,23 +65,23 @@ class Logger:
             self._logger._log(INFO, message, ())
 
     def warning(self, message: str):
-        """Warning log message
+        """Warning log message.
 
         Parameters
         ----------
         message : str
-            Message to log
+            Message to log.
         """
         if self._logger.isEnabledFor(WARNING):
             self._logger._log(WARNING, message, ())
 
     def error(self, message: str | Exception):
-        """Error log message
+        """Error log message.
 
         Parameters
         ----------
         message : str
-            Message to log
+            Message to log.
         """
         if self._logger.isEnabledFor(ERROR):
             if isinstance(message, Exception):
@@ -101,18 +92,18 @@ class Logger:
 
     @property
     def in_debug_mode(self) -> bool:
-        """Checks if the logger's level is DEBUG
+        """Checks if the logger's level is DEBUG.
 
         Returns
         -------
         bool
-            True, if logger is in DEBUG mode, False otherwise
+            True, if logger is in DEBUG mode, False otherwise.
         """
         return self._logger.level == DEBUG
 
     @property
     def level(self) -> int:
-        """Returns the current log level
+        """Returns the current log level.
 
         Returns
         -------
@@ -126,47 +117,46 @@ class Logger:
 
 
 def get_logger(name: str) -> logging.Logger:
-    """Gets the specified logger object
+    """Gets the specified logger object.
 
     Parameters
     ----------
     name : str
-        Name of the module to get the logger for
+        Name of the module to get the logger for.
 
     Returns
     -------
     logging.Logger
-        Logger of the specified module
+        Logger of the specified module.
     """
     return logging.getLogger(name)
 
 
 def logger_exists(name: str) -> bool:
-    """Checks if a logger exists for the specified module
+    """Checks if a logger exists for the specified module.
 
     Parameters
     ----------
     name : str
-        Name of the module to check the logger for
+        Name of the module to check the logger for.
 
     Returns
     -------
     bool
-        True if logger exists, False otherwise
+        True if logger exists, False otherwise.
     """
-    return logging.getLogger(name).hasHa
-    ndlers()
+    return logging.getLogger(name).hasHandlers()
 
 
 def set_level(name: str, level: int | str):
-    """Sets log level for the specified logger
+    """Sets log level for the specified logger.
 
     Parameters
     ----------
     name : str
-        Name of the module
+        Name of the module.
     level : int | str
-        Level to set
+        Level to set.
     """
     logger = logging.getLogger(name)
 
@@ -180,28 +170,3 @@ def set_level(name: str, level: int | str):
     # and all handlers
     for handler in logger.handlers:
         handler.setLevel(level)
-
-        # optionally change the formatter (log more when in debug mode)
-        if level < INFO:
-            handler.setFormatter(DEBUG_FORMAT)
-        else:
-            handler.setFormatter(DEFAULT_FORMAT)
-
-
-def set_verbosity(level: int):
-    """Sets verbosity to the given level
-
-    Parameters
-    ----------
-    level : int
-        Logg only errors (0), info (1) or even debug messages (2)
-    """
-    if level == 0:
-        set_level("chaine._core.crf", "ERROR")
-        set_level("chaine.crf", "ERROR")
-    elif level == 1:
-        set_level("chaine._core.crf", "INFO")
-        set_level("chaine.crf", "INFO")
-    elif level == 2:
-        set_level("chaine._core.crf", "DEBUG")
-        set_level("chaine.crf", "DEBUG")
