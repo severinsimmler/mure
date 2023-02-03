@@ -4,8 +4,8 @@ from typing import Iterable, Iterator
 from aiohttp import ClientSession
 
 from mure.dtos import Resource, Response
-from mure.utils import chunk
 from mure.logging import Logger
+from mure.utils import chunk
 
 LOGGER = Logger(__name__)
 

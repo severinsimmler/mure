@@ -14,6 +14,7 @@ black = "^22.12.0"
 isort = "^5.11.4"
 pycln = "^2.1.2"
 pytest = "^7.2.0"
+pre-commit = "^3.0.3"
 
 [tool.black]
 line-length = 99
