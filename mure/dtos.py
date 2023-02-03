@@ -38,4 +38,19 @@ class Response:
         Any
             Parsed Python objects.
         """
-        return orjson.loads(self.body)
+        return orjson.loads(self.text)
+
+    def __getitem__(self, attr: str) -> int | str | bool:
+        """Get the specified attribute.
+
+        Parameters
+        ----------
+        attr : str
+            Attribute to get.
+
+        Returns
+        -------
+        int | str | bool
+            Attribute value.
+        """
+        return getattr(self, attr)

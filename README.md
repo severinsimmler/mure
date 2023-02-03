@@ -29,7 +29,7 @@ Pass an iterable of dictionaries with at least a value for `url` and get a gener
 >>> responses
 <generator object get at 0x7fc2a9aae420>
 >>> for resource, response in zip(resources, responses):
-...     print(resource, "status code:", response["status"])
+...     print(resource, "status code:", response.status)
 ...
 {'url': 'https://httpbin.org/get'} status code: 200
 {'url': 'https://httpbin.org/get', 'params': {'foo': 'bar'}} status code: 200

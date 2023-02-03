@@ -1,6 +1,8 @@
 import pytest
+from orjson import JSONDecodeError
 
 import mure
+from mure.dtos import Response
 
 
 def test_get():
@@ -10,12 +12,12 @@ def test_get():
         {"url": "invalid"},
     ]
 
-    responses = list(mure.get(resources, batch_size=2))
+    responses: list[Response] = list(mure.get(resources, batch_size=2))
 
     assert len(responses) == 3
-    assert responses[0]["ok"]
-    assert responses[1]["ok"]
-    assert not responses[2]["ok"]
+    assert responses[0].ok
+    assert responses[1].ok
+    assert not responses[2].ok
 
 
 def test_post():
@@ -25,7 +27,7 @@ def test_post():
         {"url": "invalid"},
     ]
 
-    responses = list(mure.post(resources, batch_size=2))
+    responses: list[Response] = list(mure.post(resources, batch_size=2))
 
     assert len(responses) == 3
     assert responses[0]["ok"]
@@ -42,7 +44,7 @@ def test_mixed():
         {"method": "GET", "url": "invalid"},
     ]
 
-    responses = list(mure.request(resources, batch_size=2))
+    responses: list[Response] = list(mure.request(resources, batch_size=2))
 
     assert len(responses) == 5
     assert responses[0]["ok"]
@@ -54,4 +56,15 @@ def test_mixed():
 
 def test_missing_method():
     with pytest.raises(KeyError):
-        list(mure.request([{"url": "https://httpbin.org/get"}]))
+        next(mure.request([{"url": "https://httpbin.org/get"}]))
+
+
+def test_json():
+    response = next(mure.get([{"url": "https://httpbin.org/get"}]))
+
+    assert len(response.json()) == 4
+
+
+def test_invalid_json():
+    with pytest.raises(JSONDecodeError):
+        next(mure.get([{"url": "https://wikipedia.org"}])).json()
