@@ -1,4 +1,7 @@
-from typing import TypedDict
+from dataclasses import dataclass
+from typing import Any, TypedDict
+
+import orjson
 
 
 class Resource(TypedDict):
@@ -6,8 +9,33 @@ class Resource(TypedDict):
     url: str
 
 
-class Response(TypedDict):
+@dataclass
+class Response:
+    """HTTP response.
+
+    Attributes
+    ----------
+    status : int
+        HTTP status code of response, e.g. 200.
+    reason : str
+        HTTP status reason of response, e.g. "OK".
+    ok : bool
+        Boolean representation of HTTP status code. True if status is <400; otherwise, False.
+    text : str
+        Response's body as decoded string.
+    """
+
     status: int
     reason: str
     ok: bool
-    body: str
+    text: str
+
+    def json(self) -> Any:
+        """Deserialize JSON to Python objects.
+
+        Returns
+        -------
+        Any
+            Parsed Python objects.
+        """
+        return orjson.loads(self.body)

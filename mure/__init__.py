@@ -88,15 +88,16 @@ async def _process(session: ClientSession, resource: Resource) -> Response:
 
     try:
         async with session.request(method, url, **resource) as response:
-            return {
-                "status": response.status,
-                "reason": response.reason,
-                "ok": response.ok,
-                "body": await response.text(),
-            }
+            text = await response.text()
+            return Response(
+                status=response.status,
+                reason=response.reason,
+                ok=response.ok,
+                text=text,
+            )
     except Exception as error:
         LOGGER.error(error)
-        return {"status": 0, "reason": repr(error), "ok": False, "body": ""}
+        return Response(status=0, reason=repr(error), ok=False, text="")
 
 
 async def _process_batch(resources: Iterable[Resource]) -> list[Response]:

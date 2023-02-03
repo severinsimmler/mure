@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mure"
-version = "0.2.0"
+version = "0.3.0"
 description = "Perform multiple HTTP requests in parallel – without writing boilerplate code or worrying about async functions."
 authors = ["Severin Simmler <s.simmler@snapaddy.com>"]
 readme = "README.md"
@@ -8,6 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.10"
 aiohttp = { extras = ["speedups"], version = "^3.8.3" }
+orjson = "^3.8.5"
 
 [tool.poetry.group.dev.dependencies]
 black = "^22.12.0"
