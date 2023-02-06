@@ -16,7 +16,7 @@ pip install mure
 
 ## Usage
 
-Pass an iterable of dictionaries with at least a value for `url` and get a generator with the responses:
+Pass an iterable of dictionaries with at least a value for `url` and get `ResponseIterator` with the responses:
 
 ```python
 >>> import mure
@@ -27,7 +27,7 @@ Pass an iterable of dictionaries with at least a value for `url` and get a gener
 ... ]
 >>> responses = mure.get(resources, batch_size=2)
 >>> responses
-<generator object get at 0x7fc2a9aae420>
+<ResponseIterator: 3 pending>
 >>> for resource, response in zip(resources, responses):
 ...     print(resource, "status code:", response.status)
 ...
