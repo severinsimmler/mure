@@ -29,7 +29,7 @@ def request(resources: Iterable[Resource], *, batch_size: int = 5) -> Iterator[R
         yield from asyncio.run(_process_batch(batch))
 
 
-def get(resources: str, *, batch_size: int = 5) -> Iterator[Response]:
+def get(resources: Iterable[Resource], *, batch_size: int = 5) -> Iterator[Response]:
     """Perform GET HTTP request for each resource in the given batch.
 
     Parameters
@@ -47,7 +47,7 @@ def get(resources: str, *, batch_size: int = 5) -> Iterator[Response]:
     yield from request([r | {"method": "GET"} for r in resources], batch_size=batch_size)
 
 
-def post(resources: str, *, batch_size: int = 5) -> Iterator[Response]:
+def post(resources: Iterable[Resource], *, batch_size: int = 5) -> Iterator[Response]:
     """Perform GET HTTP request for each resource in the given batch.
 
     Parameters
