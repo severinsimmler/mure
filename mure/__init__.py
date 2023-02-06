@@ -1,118 +1,112 @@
-import asyncio
-from typing import Iterable, Iterator
+from typing import Iterable
 
-from aiohttp import ClientSession
-
-from mure.dtos import Resource, Response
-from mure.logging import Logger
-from mure.utils import chunk
-
-LOGGER = Logger(__name__)
+from mure.dtos import Resource
+from mure.utils import ResponseIterator
 
 
-def request(resources: Iterable[Resource], *, batch_size: int = 5) -> Iterator[Response]:
+def request(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIterator:
     """Perform HTTP request for each resource in the given batch.
 
     Parameters
     ----------
-    resource : Resource
-        Resource to request.
+    resources : Iterable[Resource]
+        Resources to request.
     batch_size : int
-        Number of items to request in parallel, by default 5.
+        Number of resources to request in parallel, by default 5.
 
     Returns
     -------
-    Iterator[Response]
+    ResponseIterator
         The server's responses for each resource.
     """
-    for batch in chunk(resources, n=batch_size):
-        yield from asyncio.run(_process_batch(batch))
+    return ResponseIterator(resources, batch_size=batch_size)
 
 
-def get(resources: Iterable[Resource], *, batch_size: int = 5) -> Iterator[Response]:
+def get(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIterator:
     """Perform GET HTTP request for each resource in the given batch.
 
     Parameters
     ----------
-    resource : Resource
-        Resource to request.
+    resources : Iterable[Resource]
+        Resources to request.
     batch_size : int
-        Number of items to request in parallel, by default 5.
+        Number of resources to request in parallel, by default 5.
 
     Returns
     -------
-    Iterator[Response]
+    ResponseIterator
         The server's responses for each resource.
     """
-    yield from request([r | {"method": "GET"} for r in resources], batch_size=batch_size)
+    return request([r | {"method": "GET"} for r in resources], batch_size=batch_size)
 
 
-def post(resources: Iterable[Resource], *, batch_size: int = 5) -> Iterator[Response]:
+def post(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIterator:
     """Perform GET HTTP request for each resource in the given batch.
 
     Parameters
     ----------
-    resource : Resource
-        Resource to request.
+    resources : Iterable[Resource]
+        Resources to request.
     batch_size : int
         Number of items to request per batch in parallel, by default 5.
 
     Returns
     -------
-    Iterator[Response]
+    ResponseIterator
         The server's responses for each resource.
     """
-    yield from request([r | {"method": "POST"} for r in resources], batch_size=batch_size)
+    return request([r | {"method": "POST"} for r in resources], batch_size=batch_size)
 
 
-async def _process(session: ClientSession, resource: Resource) -> Response:
-    """Perform HTTP request.
+def put(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIterator:
+    """Perform PUT HTTP request for each resource in the given batch.
 
     Parameters
     ----------
-    session : ClientSession
-        First-class interface for making HTTP requests.
-    resource : Resource
-        Resource to request.
+    resources : Iterable[Resource]
+        Resources to request.
+    batch_size : int
+        Number of items to request per batch in parallel, by default 5.
 
     Returns
     -------
-    Response
-        The server's response.
+    ResponseIterator
+        The server's responses for each resource.
     """
-    try:
-        method = resource.pop("method")
-        url = resource.pop("url")
-    except KeyError as error:
-        raise KeyError(f"{error} is not defined for the given resource")
-
-    try:
-        async with session.request(method, url, **resource) as response:
-            text = await response.text()
-            return Response(
-                status=response.status,
-                reason=response.reason,
-                ok=response.ok,
-                text=text,
-            )
-    except Exception as error:
-        LOGGER.error(error)
-        return Response(status=0, reason=repr(error), ok=False, text="")
+    return request([r | {"method": "PUT"} for r in resources], batch_size=batch_size)
 
 
-async def _process_batch(resources: Iterable[Resource]) -> list[Response]:
-    """Perform HTTP request for each resource in the given batch.
+def patch(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIterator:
+    """Perform PATCH HTTP request for each resource in the given batch.
 
     Parameters
     ----------
-    resource : Resource
-        Resource to request.
+    resources : Iterable[Resource]
+        Resources to request.
+    batch_size : int
+        Number of items to request per batch in parallel, by default 5.
 
     Returns
     -------
-    list[Response]
+    ResponseIterator
         The server's responses for each resource.
     """
-    async with ClientSession() as session:
-        requests = [_process(session, resource) for resource in resources]
-        return await asyncio.gather(*requests)
+    return request([r | {"method": "PATCH"} for r in resources], batch_size=batch_size)
+
+
+def delete(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIterator:
+    """Perform DELETE HTTP request for each resource in the given batch.
+
+    Parameters
+    ----------
+    resources : Iterable[Resource]
+        Resources to request.
+    batch_size : int
+        Number of items to request per batch in parallel, by default 5.
+
+    Returns
+    -------
+    ResponseIterator
+        The server's responses for each resource.
+    """
+    return request([r | {"method": "DELETE"} for r in resources], batch_size=batch_size)
