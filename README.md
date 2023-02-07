@@ -39,7 +39,7 @@ Pass an iterable of dictionaries (a typed dictionary `Resource`, to be precise) 
 <ResponseIterator: 0 pending>
 ```
 
-The keyword argument `batch_size` defines the number of requests to perform in parallel (don't be too greedy). The resources are requested batch-wise, i. e. only one batch of responses is kept in memory; depends of course also on how you use the `ResponseIterator`.
+The keyword argument `batch_size` defines the number of requests to perform in parallel (don't be too greedy). The resources are requested batch-wise, i. e. only one batch of responses is kept in memory (depends of course also on how you use the `ResponseIterator`).
 
 For example, if you set `batch_size` to `2`, have four resources and execute:
 
@@ -47,15 +47,15 @@ For example, if you set `batch_size` to `2`, have four resources and execute:
 >>> next(responses)
 ```
 
-the first two resources are requested in parallel and blocks until both of the responses are available (i.e. if resource 1 takes 1 second and resource 2 takes 10 seconds, it blocks 10 seconds although resource 1 is already available after 1 second).
+the first two resources are requested in parallel and blocks until both of the responses are available (i.e. if resource 1 takes 1 second and resource 2 takes 10 seconds, it blocks 10 seconds although resource 1 is already available after 1 second). The response of resource 1 is yielded.
 
-If you execute `next()` a second time:
+Executing `next()` a second time:
 
 ```python
 >>> next(response)
 ```
 
-this will be super fast, because the response is already available.
+will be super fast, because the response of resource 2 is already available. Executing `next()` a third time will be "slow" again, because the next batch of resources is requested.
 
 However, there is also a convenience function for POST requests:
 
