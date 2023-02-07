@@ -1,12 +1,19 @@
 from dataclasses import dataclass
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict
 
 import orjson
 
 
 class Resource(TypedDict):
-    method: str
+    """Resource with a specified URL."""
+
     url: str
+
+
+class HTTPResource(Resource):
+    """Resource with a specified HTTP method."""
+
+    method: Literal["GET", "POST", "HEAD", "PUT", "PATCH", "DELETE"]
 
 
 @dataclass
