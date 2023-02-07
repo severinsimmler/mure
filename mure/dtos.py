@@ -3,6 +3,7 @@ from typing import Any, Literal, TypedDict
 
 import orjson
 
+# allowed http methods
 HTTPMethods = Literal["GET", "POST", "HEAD", "PUT", "PATCH", "DELETE"]
 
 Resource = TypedDict("Resource", {"url": str})
