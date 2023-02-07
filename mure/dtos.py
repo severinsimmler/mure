@@ -3,17 +3,10 @@ from typing import Any, Literal, TypedDict
 
 import orjson
 
+HTTPMethods = Literal["GET", "POST", "HEAD", "PUT", "PATCH", "DELETE"]
 
-class Resource(TypedDict):
-    """Resource with a specified URL."""
-
-    url: str
-
-
-class HTTPResource(Resource):
-    """Resource with a specified HTTP method."""
-
-    method: Literal["GET", "POST", "HEAD", "PUT", "PATCH", "DELETE"]
+Resource = TypedDict("Resource", {"url": str})
+HTTPResource = TypedDict("HTTPResource", {"url": str, "method": HTTPMethods})
 
 
 @dataclass

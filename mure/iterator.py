@@ -1,15 +1,16 @@
 import asyncio
+import itertools
 from typing import Any, Iterable, Iterator
 
-from aiohttp import ClientSession
+from aiohttp import ClientResponse, ClientSession
 
-from mure.dtos import Resource, Response
+from mure.dtos import HTTPResource, Resource, Response
 from mure.logging import Logger
 
 LOGGER = Logger(__name__)
 
 
-class ResponseIterator(Iterator):
+class ResponseIterator(Iterator[Response]):
     def __init__(self, resources: Iterable[Resource], *, batch_size: int = 5):
         """Initialize a response iterator.
 
@@ -23,7 +24,7 @@ class ResponseIterator(Iterator):
         self.resources = resources
         self.batch_size = batch_size
         self._responses = self._process_batches()
-        self._pending = len(resources)
+        self._pending = len(resources) if isinstance(resources, list) else float("inf")
 
     def __repr__(self) -> str:
         """Response iterator representation.
@@ -35,7 +36,7 @@ class ResponseIterator(Iterator):
         """
         return f"<ResponseIterator: {self._pending} pending>"
 
-    def __len__(self) -> int:
+    def __len__(self) -> int | float:
         """Return the number of resources/responses.
 
         Returns
@@ -78,12 +79,12 @@ class ResponseIterator(Iterator):
                 self._pending -= 1
                 yield response
 
-    async def _process_batch(self, resources: Iterable[Resource]) -> list[Response]:
+    async def _process_batch(self, resources: Iterable[HTTPResource]) -> list[Response]:
         """Perform HTTP request for each resource in the given batch.
 
         Parameters
         ----------
-        resource : Resource
+        resource : HTTPResource
             Resource to request.
 
         Returns
@@ -96,7 +97,7 @@ class ResponseIterator(Iterator):
             return await asyncio.gather(*requests)
 
     @staticmethod
-    async def _process(session: ClientSession, resource: Resource) -> Response:
+    async def _process(session: ClientSession, resource: HTTPResource) -> Response:
         """Perform HTTP request.
 
         Parameters
@@ -111,18 +112,20 @@ class ResponseIterator(Iterator):
         Response
             The server's response.
         """
-        try:
-            method = resource.pop("method")
-            url = resource.pop("url")
-        except KeyError as error:
-            raise KeyError(f"{error} is not defined for the given resource")
+        if not resource.get("url"):
+            raise KeyError(f"'url' is not defined or has an empty value for the given resource")
+
+        if not resource.get("method"):
+            raise KeyError(f"'method' is not defined or has an empty value for the given resource")
 
         try:
-            async with session.request(method, url, **resource) as response:
+            kwargs = {k: v for k, v in resource.items() if k not in {"method", "url"}}
+            async with session.request(resource["method"], resource["url"], **kwargs) as response:
+                response: ClientResponse
                 text = await response.text()
                 return Response(
                     status=response.status,
-                    reason=response.reason,
+                    reason=response.reason,  # type: ignore
                     ok=response.ok,
                     text=text,
                 )
@@ -131,7 +134,7 @@ class ResponseIterator(Iterator):
             return Response(status=0, reason=repr(error), ok=False, text="")
 
     @staticmethod
-    def chunk(values: list[Any], n: int = 5) -> Iterator[Any]:
+    def chunk(values: Iterable[Any], n: int = 5) -> Iterator[Any]:
         """Splits the given list of values into batches of size `n`.
 
         Parameters
@@ -146,5 +149,6 @@ class ResponseIterator(Iterator):
         Iterator[Any]
             One batch at a time.
         """
-        for i in range(0, len(values), n):
-            yield values[i : i + n]
+        iterator = iter(values)
+        for first in iterator:
+            yield itertools.chain([first], itertools.islice(iterator, n - 1))
