@@ -1,10 +1,10 @@
 from typing import Iterable
 
-from mure.dtos import Resource
-from mure.utils import ResponseIterator
+from mure.dtos import Resource, Response
+from mure.iterator import ResponseIterator
 
 
-def request(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIterator:
+def request(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIterator[Response]:
     """Perform HTTP request for each resource in the given batch.
 
     Parameters
@@ -16,13 +16,13 @@ def request(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIt
 
     Returns
     -------
-    ResponseIterator
+    ResponseIterator[Response]
         The server's responses for each resource.
     """
-    return ResponseIterator(resources, batch_size=batch_size)
+    return ResponseIterator[Response](resources, batch_size=batch_size)
 
 
-def get(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIterator:
+def get(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIterator[Response]:
     """Perform GET HTTP request for each resource in the given batch.
 
     Parameters
@@ -34,13 +34,13 @@ def get(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIterat
 
     Returns
     -------
-    ResponseIterator
+    ResponseIterator[Response]
         The server's responses for each resource.
     """
     return request([r | {"method": "GET"} for r in resources], batch_size=batch_size)
 
 
-def post(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIterator:
+def post(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIterator[Response]:
     """Perform GET HTTP request for each resource in the given batch.
 
     Parameters
@@ -52,13 +52,13 @@ def post(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseItera
 
     Returns
     -------
-    ResponseIterator
+    ResponseIterator[Response]
         The server's responses for each resource.
     """
     return request([r | {"method": "POST"} for r in resources], batch_size=batch_size)
 
 
-def put(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIterator:
+def put(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIterator[Response]:
     """Perform PUT HTTP request for each resource in the given batch.
 
     Parameters
@@ -70,13 +70,13 @@ def put(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIterat
 
     Returns
     -------
-    ResponseIterator
+    ResponseIterator[Response]
         The server's responses for each resource.
     """
     return request([r | {"method": "PUT"} for r in resources], batch_size=batch_size)
 
 
-def patch(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIterator:
+def patch(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIterator[Response]:
     """Perform PATCH HTTP request for each resource in the given batch.
 
     Parameters
@@ -88,13 +88,13 @@ def patch(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIter
 
     Returns
     -------
-    ResponseIterator
+    ResponseIterator[Response]
         The server's responses for each resource.
     """
     return request([r | {"method": "PATCH"} for r in resources], batch_size=batch_size)
 
 
-def delete(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIterator:
+def delete(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIterator[Response]:
     """Perform DELETE HTTP request for each resource in the given batch.
 
     Parameters
@@ -106,7 +106,7 @@ def delete(resources: Iterable[Resource], *, batch_size: int = 5) -> ResponseIte
 
     Returns
     -------
-    ResponseIterator
+    ResponseIterator[Response]
         The server's responses for each resource.
     """
     return request([r | {"method": "DELETE"} for r in resources], batch_size=batch_size)
