@@ -16,11 +16,12 @@ pip install mure
 
 ## Usage
 
-Pass an iterable of dictionaries with at least a value for `url` and get `ResponseIterator` with the responses:
+Pass an iterable of dictionaries (a typed dictionary `Resource`, to be precise) with at least a value for `url` and get a `ResponseIterator` with the corresponding responses:
 
 ```python
 >>> import mure
->>> resources = [
+>>> from mure.dtos import Resource
+>>> resources: list[Resource] = [
 ...     {"url": "https://httpbin.org/get"},
 ...     {"url": "https://httpbin.org/get", "params": {"foo": "bar"}},
 ...     {"url": "invalid"},
@@ -34,11 +35,29 @@ Pass an iterable of dictionaries with at least a value for `url` and get `Respon
 {'url': 'https://httpbin.org/get'} status code: 200
 {'url': 'https://httpbin.org/get', 'params': {'foo': 'bar'}} status code: 200
 {'url': 'invalid'} status code: 0
+>>> responses
+<ResponseIterator: 0 pending>
 ```
 
-The keyword argument `batch_size` defines the number of requests to perform in parallel (don't be too greedy).
+The keyword argument `batch_size` defines the number of requests to perform in parallel (don't be too greedy). The resources are requested batch-wise, i. e. only one batch of responses is kept in memory; depends of course also on how you use the `ResponseIterator`.
 
-There is also a convenience function for POST requests:
+For example, if you set `batch_size` to `2`, have four resources and execute:
+
+```python
+>>> next(responses)
+```
+
+the first two resources are requested in parallel and blocks until both of the responses are available (i.e. if resource 1 takes 1 second and resource 2 takes 10 seconds, it blocks 10 seconds although resource 1 is already available after 1 second).
+
+If you execute `next()` a second time:
+
+```python
+>>> next(response)
+```
+
+this will be super fast, because the response is already available.
+
+However, there is also a convenience function for POST requests:
 
 ```python
 >>> resources = [
