@@ -86,3 +86,30 @@ You can even mix HTTP methods in the list of resources (but have to specify the 
 ... ]
 >>> responses = mure.request(resources)
 ```
+
+### Verbosity
+
+Control verbosity with the `log_errors` argument:
+
+```python
+>>> import mure
+>>> next(mure.get([{"url": "invalid"}], log_errors=True))
+invalid
+Traceback (most recent call last):
+  File "/home/severin/git/mure/mure/iterator.py", line 131, in _process
+    async with session.request(resource["method"], resource["url"], **kwargs) as response:
+  File "/home/severin/git/mure/.env/lib/python3.11/site-packages/aiohttp/client.py", line 1141, in __aenter__
+    self._resp = await self._coro
+                 ^^^^^^^^^^^^^^^^
+  File "/home/severin/git/mure/.env/lib/python3.11/site-packages/aiohttp/client.py", line 508, in _request
+    req = self._request_class(
+          ^^^^^^^^^^^^^^^^^^^^
+  File "/home/severin/git/mure/.env/lib/python3.11/site-packages/aiohttp/client_reqrep.py", line 305, in __init__
+    self.update_host(url)
+  File "/home/severin/git/mure/.env/lib/python3.11/site-packages/aiohttp/client_reqrep.py", line 364, in update_host
+    raise InvalidURL(url)
+aiohttp.client_exceptions.InvalidURL: invalid
+Response(status=0, reason='<InvalidURL invalid>', ok=False, text='')
+>>> next(mure.get([{"url": "invalid"}], log_errors=False))
+Response(status=0, reason='<InvalidURL invalid>', ok=False, text='')
+```
