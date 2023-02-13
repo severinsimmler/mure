@@ -11,7 +11,13 @@ LOGGER = Logger(__name__)
 
 
 class ResponseIterator(Iterator[Response]):
-    def __init__(self, resources: Iterable[Resource], *, batch_size: int = 5):
+    def __init__(
+        self,
+        resources: Iterable[Resource],
+        *,
+        batch_size: int = 5,
+        log_errors: bool = True,
+    ):
         """Initialize a response iterator.
 
         Parameters
@@ -20,9 +26,12 @@ class ResponseIterator(Iterator[Response]):
             Resources to request.
         batch_size : int, optional
             Number of resources to request in parallel, by default 5.
+        log_errors : bool, optional
+            True if Python errors should be logged, by default True.
         """
         self.resources = resources
         self.batch_size = batch_size
+        self._log_errors = log_errors
         self._responses = self._process_batches()
         self._pending = len(resources) if isinstance(resources, list) else float("inf")
 
@@ -96,8 +105,7 @@ class ResponseIterator(Iterator[Response]):
             requests = [self._process(session, resource) for resource in resources]
             return await asyncio.gather(*requests)
 
-    @staticmethod
-    async def _process(session: ClientSession, resource: HTTPResource) -> Response:
+    async def _process(self, session: ClientSession, resource: HTTPResource) -> Response:
         """Perform HTTP request.
 
         Parameters
@@ -113,10 +121,10 @@ class ResponseIterator(Iterator[Response]):
             The server's response.
         """
         if not resource.get("url"):
-            raise KeyError(f"'url' is not defined or has an empty value for the given resource")
+            raise KeyError(f"'url' is missing in the given resource")
 
         if not resource.get("method"):
-            raise KeyError(f"'method' is not defined or has an empty value for the given resource")
+            raise KeyError(f"'method' is missing in the given resource")
 
         try:
             kwargs = {k: v for k, v in resource.items() if k not in {"method", "url"}}
@@ -130,7 +138,8 @@ class ResponseIterator(Iterator[Response]):
                     text=text,
                 )
         except Exception as error:
-            LOGGER.error(error)
+            if self._log_errors:
+                LOGGER.error(error)
             return Response(status=0, reason=repr(error), ok=False, text="")
 
     @staticmethod
