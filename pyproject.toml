@@ -18,10 +18,10 @@ pytest = "^7.2.0"
 pre-commit = "^3.0.3"
 
 [tool.black]
-line-length = 110
+line-length = 99
 
 [tool.isort]
-line_length = 110
+line_length = 99
 use_parentheses = true
 include_trailing_comma = true
 multi_line_output = 3
