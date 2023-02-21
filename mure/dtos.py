@@ -1,11 +1,17 @@
 from dataclasses import dataclass
 from ssl import SSLContext
 from types import SimpleNamespace
-from typing import Any, Iterable, Literal, Mapping, NotRequired, TypedDict
+from typing import Any, Iterable, Literal, Mapping, TypedDict
 
 import orjson
 from aiohttp import BasicAuth, ClientTimeout, Fingerprint
 from aiohttp.typedefs import LooseCookies, LooseHeaders, StrOrURL
+
+try:
+    from typing import NotRequired
+except ImportError:
+    from typing_extensions import NotRequired
+
 
 # allowed http methods
 HTTPMethod = Literal["GET", "POST", "HEAD", "PUT", "PATCH", "DELETE"]
