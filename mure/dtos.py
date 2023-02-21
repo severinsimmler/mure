@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from ssl import SSLContext
 from types import SimpleNamespace
 from typing import Any, Iterable, Literal, Mapping, TypedDict
+from urllib.parse import urlparse
 
 import orjson
 from aiohttp import BasicAuth, ClientTimeout, Fingerprint
@@ -54,6 +55,28 @@ class HTTPResource(Resource):
 
 
 @dataclass
+class HistoricResponse:
+    """Historic HTTP response.
+
+    Attributes
+    ----------
+    status : int
+        HTTP status code of response, e.g. 200.
+    reason : str
+        HTTP status reason of response, e.g. "OK".
+    ok : bool
+        Boolean representation of HTTP status code. True if status is <400; otherwise, False.
+    url : str
+        Response URL.
+    """
+
+    status: int
+    reason: str
+    ok: bool
+    url: str
+
+
+@dataclass
 class Response:
     """HTTP response.
 
@@ -67,12 +90,18 @@ class Response:
         Boolean representation of HTTP status code. True if status is <400; otherwise, False.
     text : str
         Response's body as decoded string.
+    url : str
+        Response URL.
+    history : list[HistoricResponse]
+        List of historic responses (in case requested URL redirected).
     """
 
     status: int
     reason: str
     ok: bool
     text: str
+    url: str
+    history: list[HistoricResponse]
 
     def json(self) -> Any:
         """Deserialize JSON to Python objects.
@@ -98,3 +127,20 @@ class Response:
             Attribute value.
         """
         return getattr(self, attr)
+
+    def is_same_netloc(self, url: str) -> bool:
+        """True if the given URL has the same netloc as the response URL.
+
+        Parameters
+        ----------
+        url : str
+            URL to check.
+
+        Returns
+        -------
+        bool
+            True if same netloc, False otherwise.
+        """
+        a = urlparse(url)
+        b = urlparse(self.url)
+        return a.netloc.lower() == b.netloc.lower()

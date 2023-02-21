@@ -4,7 +4,7 @@ from typing import Any, Iterable, Iterator
 
 from aiohttp import ClientResponse, ClientSession
 
-from mure.dtos import HTTPResource, Resource, Response
+from mure.dtos import HistoricResponse, HTTPResource, Resource, Response
 from mure.logging import Logger
 
 LOGGER = Logger(__name__)
@@ -136,11 +136,21 @@ class ResponseIterator(Iterator[Response]):
                     reason=response.reason,  # type: ignore
                     ok=response.ok,
                     text=text,
+                    url=response.url.human_repr(),
+                    history=[
+                        HistoricResponse(
+                            historic_response.status,
+                            historic_response.reason,  # type: ignore
+                            historic_response.ok,
+                            historic_response.url.human_repr(),
+                        )
+                        for historic_response in response.history
+                    ],
                 )
         except Exception as error:
             if self._log_errors:
                 LOGGER.error(error)
-            return Response(status=0, reason=repr(error), ok=False, text="")
+            return Response(status=0, reason=repr(error), ok=False, text="", url="", history=[])
 
     @staticmethod
     def chunk(values: Iterable[Any], n: int = 5) -> Iterator[Any]:

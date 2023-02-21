@@ -2,11 +2,11 @@ import pytest
 from orjson import JSONDecodeError
 
 import mure
-from mure.dtos import Response
+from mure.dtos import HTTPResource, Resource, Response
 
 
 def test_get():
-    resources = [
+    resources: list[Resource] = [
         {"url": "https://httpbin.org/get"},
         {"url": "https://httpbin.org/get", "params": {"foo": "bar"}},
         {"url": "invalid"},
@@ -21,7 +21,7 @@ def test_get():
 
 
 def test_post():
-    resources = [
+    resources: list[Resource] = [
         {"url": "https://httpbin.org/post"},
         {"url": "https://httpbin.org/post", "json": {"foo": "bar"}},
         {"url": "invalid"},
@@ -36,7 +36,7 @@ def test_post():
 
 
 def test_mixed():
-    resources = [
+    resources: list[HTTPResource] = [
         {"method": "GET", "url": "https://httpbin.org/get"},
         {"method": "GET", "url": "https://httpbin.org/get", "params": {"foo": "bar"}},
         {"method": "POST", "url": "https://httpbin.org/post"},
