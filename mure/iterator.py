@@ -2,7 +2,7 @@ import asyncio
 import itertools
 from typing import Any, Iterable, Iterator
 
-from aiohttp import ClientResponse, ClientSession
+from aiohttp import ClientResponse, ClientSession, ClientTimeout
 
 from mure.dtos import HistoricResponse, HTTPResource, Resource, Response
 from mure.logging import Logger
@@ -121,10 +121,10 @@ class ResponseIterator(Iterator[Response]):
             The server's response.
         """
         if not resource.get("url"):
-            raise KeyError(f"'url' is missing in the given resource")
+            raise KeyError("'url' is missing in the given resource")
 
         if not resource.get("method"):
-            raise KeyError(f"'method' is missing in the given resource")
+            raise KeyError("'method' is missing in the given resource")
 
         try:
             kwargs = {k: v for k, v in resource.items() if k not in {"method", "url"}}
