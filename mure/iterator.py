@@ -2,7 +2,7 @@ import asyncio
 import itertools
 from typing import Any, Iterable, Iterator
 
-from aiohttp import ClientResponse, ClientSession, ClientTimeout
+from aiohttp import ClientResponse, ClientSession
 
 from mure.dtos import HistoricResponse, HTTPResource, Resource, Response
 from mure.logging import Logger
@@ -84,11 +84,11 @@ class ResponseIterator(Iterator[Response]):
             One response at a time.
         """
         for batch in self.chunk(self.resources, n=self.batch_size):
-            for response in asyncio.run(self._process_batch(batch)):
+            for response in asyncio.run(self._aprocess_batch(batch)):
                 self._pending -= 1
                 yield response
 
-    async def _process_batch(self, resources: Iterable[HTTPResource]) -> list[Response]:
+    async def _aprocess_batch(self, resources: Iterable[HTTPResource]) -> list[Response]:
         """Perform HTTP request for each resource in the given batch.
 
         Parameters
@@ -102,10 +102,10 @@ class ResponseIterator(Iterator[Response]):
             The server's responses for each resource.
         """
         async with ClientSession() as session:
-            requests = [self._process(session, resource) for resource in resources]
+            requests = [self._aprocess(session, resource) for resource in resources]
             return await asyncio.gather(*requests)
 
-    async def _process(self, session: ClientSession, resource: HTTPResource) -> Response:
+    async def _aprocess(self, session: ClientSession, resource: HTTPResource) -> Response:
         """Perform HTTP request.
 
         Parameters
