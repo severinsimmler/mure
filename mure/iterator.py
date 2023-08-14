@@ -2,7 +2,7 @@ import asyncio
 import itertools
 from typing import Any, Iterable, Iterator
 
-from aiohttp import ClientResponse, ClientSession
+from aiohttp import ClientResponse, ClientSession, TCPConnector
 
 from mure.dtos import HistoricResponse, HTTPResource, Resource, Response
 from mure.logging import Logger
@@ -32,8 +32,11 @@ class ResponseIterator(Iterator[Response]):
         self.resources = resources
         self.batch_size = batch_size
         self._log_errors = log_errors
-        self._responses = self._process_batches()
         self._pending = len(resources) if isinstance(resources, list) else float("inf")
+        
+        # create a persistent session with a limit of `batch_size` connections
+        self._session = ClientSession(connector=TCPConnector(limit=self.batch_size))
+        self._responses = self._process_batches()
 
     def __repr__(self) -> str:
         """Response iterator representation.
