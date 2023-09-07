@@ -153,21 +153,21 @@ class ResponseIterator(Iterator[Response]):
             return Response(status=0, reason=repr(error), ok=False, text="", url="", history=[])
 
     @staticmethod
-    def _split_into_batches(values: Iterable[Any], n: int = 5) -> Iterator[Any]:
+    def _split_into_batches(values: Iterable[Any], n: int = 5) -> Iterator[list[Any]]:
         """Splits the given list of values into batches of size `n`.
 
         Parameters
         ----------
-        values : list[Any]
+        values : Iterable[Any]
             Values to split into batches.
         n : int, optional
             Number of items per batch, by default 5.
 
         Yields
         ------
-        Iterator[Any]
+        Iterator[list[Any]]
             One batch at a time.
         """
         iterator = iter(values)
         for first in iterator:
-            yield itertools.chain([first], itertools.islice(iterator, n - 1))
+            yield list(itertools.chain([first], itertools.islice(iterator, n - 1)))
