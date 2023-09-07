@@ -2,7 +2,7 @@ import asyncio
 import itertools
 from typing import Any, Iterable, Iterator
 
-from aiohttp import ClientResponse, ClientSession, TCPConnector
+from aiohttp import ClientResponse, ClientSession
 
 from mure.dtos import HistoricResponse, HTTPResource, Resource, Response
 from mure.logging import Logger
@@ -32,11 +32,8 @@ class ResponseIterator(Iterator[Response]):
         self.resources = resources
         self.batch_size = batch_size
         self._log_errors = log_errors
-        self._pending = len(resources) if isinstance(resources, list) else float("inf")
-        
-        # create a persistent session with a limit of `batch_size` connections
-        self._session = ClientSession(connector=TCPConnector(limit=self.batch_size))
         self._responses = self._process_batches()
+        self._pending = len(resources) if isinstance(resources, list) else float("inf")
 
     def __repr__(self) -> str:
         """Response iterator representation.
@@ -86,15 +83,12 @@ class ResponseIterator(Iterator[Response]):
         Iterator[Response]
             One response at a time.
         """
-        for batch in self.chunk(self.resources, n=self.batch_size):
-            for response in asyncio.run(self._aprocess_batch(batch)):
+        for batch in self._split_into_batches(self.resources, n=self.batch_size):
+            for response in asyncio.run(self._process_batch(batch)):
                 self._pending -= 1
                 yield response
 
-        # close the session when all resources have been processed
-        self._session.close()
-
-    async def _aprocess_batch(self, resources: Iterable[HTTPResource]) -> list[Response]:
+    async def _process_batch(self, resources: Iterable[HTTPResource]) -> list[Response]:
         """Perform HTTP request for each resource in the given batch.
 
         Parameters
@@ -108,10 +102,10 @@ class ResponseIterator(Iterator[Response]):
             The server's responses for each resource.
         """
         async with ClientSession() as session:
-            requests = [self._aprocess(session, resource) for resource in resources]
+            requests = [self._process(session, resource) for resource in resources]
             return await asyncio.gather(*requests)
 
-    async def _aprocess(self, session: ClientSession, resource: HTTPResource) -> Response:
+    async def _process(self, session: ClientSession, resource: HTTPResource) -> Response:
         """Perform HTTP request.
 
         Parameters
@@ -159,13 +153,13 @@ class ResponseIterator(Iterator[Response]):
             return Response(status=0, reason=repr(error), ok=False, text="", url="", history=[])
 
     @staticmethod
-    def chunk(values: Iterable[Any], n: int = 5) -> Iterator[Any]:
+    def _split_into_batches(values: Iterable[Any], n: int = 5) -> Iterator[Any]:
         """Splits the given list of values into batches of size `n`.
 
         Parameters
         ----------
         values : list[Any]
-            Values to chunk.
+            Values to split into batches.
         n : int, optional
             Number of items per batch, by default 5.
 
