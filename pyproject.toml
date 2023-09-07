@@ -30,6 +30,10 @@ multi_line_output = 3
 [tool.pycln]
 all = true
 
+[tool.ruff]
+line-length = 99
+exclude = ["tests"]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
