@@ -7,16 +7,16 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-aiohttp = { extras = ["speedups"], version = "^3.8.3" }
-orjson = "^3.8.5"
-typing-extensions = { version = "^4.5.0", python = "<3.11" }
+aiohttp = { extras = ["speedups"], version = "^3.8.5" }
+orjson = "^3.9.5"
+typing-extensions = { version = "^4.7.1", python = "<3.11" }
 
 [tool.poetry.group.dev.dependencies]
-black = "^23.1.0"
-isort = "^5.11.4"
-pycln = "^2.1.2"
-pytest = "^7.2.0"
-pre-commit = "^3.0.3"
+black = "^23.7.0"
+isort = "^5.12.0"
+pycln = "^2.2.2"
+pytest = "^7.4.1"
+pre-commit = "^3.4.0"
 
 [tool.black]
 line-length = 99
