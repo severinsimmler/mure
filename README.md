@@ -92,7 +92,8 @@ You can even mix HTTP methods in the list of resources (but have to specify the 
 ## Tips
 
 - Set timeouts (e.g. 10 seconds) to avoid waiting for too long.
-- It might be a good idea to order the URLs to be requested by domain names so that DNS resolution is done once per domain. Once a domain's IP has been resolved, subsequent requests to the same domain can benefit from cached DNS resolutions.
+- It might be a good idea to order the URLs to be requested by domain names so that DNS resolution is done once per domain. Once a domain's IP has been resolved, subsequent requests to the same domain can benefit from cached DNS resolutions. Also when using protocols like HTTP/1.1, connections to the same domain can be reused. Batching requests by domain can allow for connection reuse.
+- Shuffling URLs randomly might be an alternative if you do not request the same domain multiple times. This helps in distributing potential slow URLs across different batches.
 
 ### Verbosity
 
