@@ -89,6 +89,11 @@ You can even mix HTTP methods in the list of resources (but have to specify the 
 >>> responses = mure.request(resources)
 ```
 
+## Tips
+
+- Set timeouts (e.g. 10 seconds) to avoid waiting for too long.
+- It might be a good idea to order the URLs to be requested by domain names so that DNS resolution is done once per domain. Once a domain's IP has been resolved, subsequent requests to the same domain can benefit from cached DNS resolutions.
+
 ### Verbosity
 
 Control verbosity with the `log_errors` argument:
