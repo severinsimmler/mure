@@ -1,6 +1,6 @@
 import asyncio
-from itertools import islice
-from typing import AsyncGenerator, Iterable, Iterator
+from asyncio import Queue
+from typing import Iterable, Iterator
 
 import orjson
 from aiohttp import ClientSession
@@ -30,14 +30,19 @@ class ResponseIterator(Iterator[Response]):
         log_errors : bool, optional
             True if Python errors should be logged, by default True.
         """
-        self.resources = resources
+        self.num_resources = len(resources)
+        self.pending = len(resources)
         self.batch_size = batch_size
+        self.batches = [
+            resources[i : i + self.batch_size]
+            for i in range(0, self.num_resources, self.batch_size)
+        ]
 
         self._log_errors = log_errors
         self._loop = asyncio.get_event_loop()
+        self._queue = Queue(maxsize=1)
         self._session = ClientSession(loop=self._loop)
         self._responses = self._process_batches()
-        self._pending = len(resources)
 
     def __del__(self):
         """Close the current HTTP session and event loop."""
@@ -52,7 +57,7 @@ class ResponseIterator(Iterator[Response]):
         str
             Representation with number of pending resources.
         """
-        return f"<ResponseIterator: {self._pending}/{len(self.resources)} pending>"
+        return f"<ResponseIterator: {self.pending}/{self.num_resources} pending>"
 
     def __len__(self) -> int | float:
         """Return the number of pending responses.
@@ -62,7 +67,7 @@ class ResponseIterator(Iterator[Response]):
         int
             Absolute number of pending responses.
         """
-        return self._pending
+        return self.pending
 
     def __iter__(self) -> Iterator[Response]:
         """Yield one response at a time.
@@ -84,57 +89,33 @@ class ResponseIterator(Iterator[Response]):
         """
         return next(self._responses)
 
-    @property
-    def batches(self) -> Iterator[list[HTTPResource]]:
-        """Split the resources into batches of size `batch_size`.
-
-        Yields
-        ------
-        list[HTTPResource]
-            One batch at a time.
-        """
-        iterator = iter(self.resources)
-        while True:
-            batch = list(islice(iterator, self.batch_size))
-            if not batch:
-                return
-            yield batch
-
     def _process_batches(self) -> Iterator[Response]:
-        """Process batches synchronously and yield responses one by one.
+        """Process batches and yield responses one by one.
 
         Yields
         ------
         Iterator[Response]
             Response iterator.
         """
-        aiterator = self._aprocess_batches().__aiter__()
+        # start processing the first batch and wait for it to finish
+        self._loop.run_until_complete(self._aprocess_batch(self.batches[0]))
 
-        async def _fetch_next() -> list[Response]:
-            try:
-                return await aiterator.__anext__()
-            except StopAsyncIteration:
-                return []
+        for batch in self.batches[1:]:
+            # start processing the next batch in the background
+            self._loop.create_task(self._aprocess_batch(batch))
 
-        for _ in self.batches:
-            for response in self._loop.run_until_complete(_fetch_next()):
+            # yield results of the previous batch from the queue
+            for response in self._loop.run_until_complete(self._queue.get()):
                 yield response
-                self._pending -= 1
-                # TODO trigger fetching the next batch after yielding the first response
+                self.pending -= 1
 
-    async def _aprocess_batches(self) -> AsyncGenerator[list[Response], None]:
-        """Process batches asynchronously and return responses batch by batch.
+        # yield results of the last batch from the queue
+        for response in self._loop.run_until_complete(self._queue.get()):
+            yield response
+            self.pending -= 1
 
-        Yields
-        ------
-        list[Response]
-            Batch of responses.
-        """
-        for batch in self.batches:
-            yield await self._aprocess_batch(batch)
-
-    async def _aprocess_batch(self, resources: Iterable[HTTPResource]) -> list[Response]:
-        """Perform HTTP request for each resource in the given batch.
+    async def _aprocess_batch(self, resources: Iterable[HTTPResource]):
+        """Fetch each resource in the given batch and put responses in the queue.
 
         Parameters
         ----------
@@ -146,7 +127,11 @@ class ResponseIterator(Iterator[Response]):
         list[Response]
             The server's responses for each resource.
         """
-        return await asyncio.gather(*[self._aprocess(resource) for resource in resources])
+        # fetch responses in parallel
+        responses = await asyncio.gather(*[self._aprocess(resource) for resource in resources])
+
+        # put responses in the queue
+        await self._queue.put(responses)
 
     async def _aprocess(self, resource: HTTPResource) -> Response:
         """Perform HTTP request.
