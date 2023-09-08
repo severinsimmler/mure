@@ -45,9 +45,8 @@ class ResponseIterator(Iterator[Response]):
         self._responses = self._process_batches()
 
     def __del__(self):
-        """Close the current HTTP session and event loop."""
+        """Close the current HTTP session."""
         self._loop.run_until_complete(self._session.close())
-        self._loop.close()
 
     def __repr__(self) -> str:
         """Response iterator representation.
@@ -109,10 +108,11 @@ class ResponseIterator(Iterator[Response]):
                 yield response
                 self.pending -= 1
 
-        # yield results of the last batch from the queue
-        for response in self._loop.run_until_complete(self._queue.get()):
-            yield response
-            self.pending -= 1
+        # yield results of the last batch from the queue (if any)
+        while not self._queue.empty():
+            for response in self._loop.run_until_complete(self._queue.get()):
+                yield response
+                self.pending -= 1
 
     async def _aprocess_batch(self, resources: Iterable[HTTPResource]):
         """Fetch each resource in the given batch and put responses in the queue.
