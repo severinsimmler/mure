@@ -1,5 +1,5 @@
 import asyncio
-from asyncio import Queue
+from asyncio import PriorityQueue
 from typing import Iterable, Iterator
 
 import orjson
@@ -40,13 +40,14 @@ class ResponseIterator(Iterator[Response]):
 
         self._log_errors = log_errors
         self._loop = asyncio.get_event_loop()
-        self._queue = Queue(maxsize=1)
+        self._queue = PriorityQueue(maxsize=2)  # do not keep more than 2 batches in memory
         self._session = ClientSession(loop=self._loop)
         self._responses = self._process_batches()
 
     def __del__(self):
         """Close the current HTTP session."""
-        self._loop.run_until_complete(self._session.close())
+        if not self._session.closed:
+            self._loop.run_until_complete(self._session.close())
 
     def __repr__(self) -> str:
         """Response iterator representation.
@@ -96,32 +97,31 @@ class ResponseIterator(Iterator[Response]):
         Iterator[Response]
             Response iterator.
         """
-        # start processing the first batch and wait for it to finish
-        self._loop.run_until_complete(self._aprocess_batch(self.batches[0]))
+        # start processing the first batch in the background
+        self._loop.create_task(self._aprocess_batch(0, self.batches[0]))
 
-        for batch in self.batches[1:]:
+        for i, batch in enumerate(self.batches[1:], start=1):
             # start processing the next batch in the background
-            self._loop.create_task(self._aprocess_batch(batch))
+            self._loop.create_task(self._aprocess_batch(i, batch))
 
             # yield results of the previous batch from the queue
-            for response in self._loop.run_until_complete(self._queue.get()):
+            for response in self._loop.run_until_complete(self._queue.get())[1]:
                 yield response
                 self.pending -= 1
 
         # yield results of the last batch from the queue (if any)
         while not self._queue.empty():
-            for response in self._loop.run_until_complete(self._queue.get()):
+            for response in self._loop.run_until_complete(self._queue.get())[1]:
                 yield response
                 self.pending -= 1
 
-        # close the http session
-        self._loop.run_until_complete(self._session.close())
-
-    async def _aprocess_batch(self, resources: Iterable[HTTPResource]):
+    async def _aprocess_batch(self, priority: int, resources: Iterable[HTTPResource]):
         """Fetch each resource in the given batch and put responses in the queue.
 
         Parameters
         ----------
+        priority : int
+            Priority of the batch.
         resource : HTTPResource
             Resource to request.
 
@@ -134,7 +134,7 @@ class ResponseIterator(Iterator[Response]):
         responses = await asyncio.gather(*[self._aprocess(resource) for resource in resources])
 
         # put responses in the queue
-        await self._queue.put(responses)
+        await self._queue.put((priority, responses))
 
     async def _aprocess(self, resource: HTTPResource) -> Response:
         """Perform HTTP request.
