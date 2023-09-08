@@ -114,6 +114,9 @@ class ResponseIterator(Iterator[Response]):
                 yield response
                 self.pending -= 1
 
+        # close the http session
+        self._loop.run_until_complete(self._session.close())
+
     async def _aprocess_batch(self, resources: Iterable[HTTPResource]):
         """Fetch each resource in the given batch and put responses in the queue.
 
