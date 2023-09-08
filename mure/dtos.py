@@ -13,8 +13,14 @@ try:
 except ImportError:
     from typing_extensions import NotRequired
 
-
 # allowed http methods
+GET = "GET"
+POST = "POST"
+HEAD = "HEAD"
+PUT = "PUT"
+PATCH = "PATCH"
+DELETE = "DELETE"
+
 HTTPMethod = Literal["GET", "POST", "HEAD", "PUT", "PATCH", "DELETE"]
 
 

@@ -29,6 +29,7 @@ multi_line_output = 3
 
 [tool.pycln]
 all = true
+exclude = "__init__.py"
 
 [tool.ruff]
 line-length = 99

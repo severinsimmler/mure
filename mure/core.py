@@ -1,17 +1,18 @@
-from typing import Iterable
-
-from mure.dtos import HTTPMethod, HTTPResource, Resource
+from mure.dtos import DELETE, GET, HEAD, PATCH, POST, PUT, HTTPMethod, HTTPResource, Resource
 from mure.iterator import ResponseIterator
 
 
 def request(
-    resources: Iterable[HTTPResource], *, batch_size: int = 5, log_errors: bool = True
+    resources: list[HTTPResource],
+    *,
+    batch_size: int = 5,
+    log_errors: bool = True,
 ) -> ResponseIterator:
     """Perform HTTP request for each resource in the given batch.
 
     Parameters
     ----------
-    resources : Iterable[HTTPResource]
+    resources : list[HTTPResource]
         Resources to request.
     batch_size : int
         Number of resources to request in parallel, by default 5.
@@ -27,13 +28,16 @@ def request(
 
 
 def get(
-    resources: Iterable[Resource], *, batch_size: int = 5, log_errors: bool = True
+    resources: list[Resource],
+    *,
+    batch_size: int = 5,
+    log_errors: bool = True,
 ) -> ResponseIterator:
-    """Perform GET HTTP request for each resource in the given batch.
+    """Perform a GET request for each resource.
 
     Parameters
     ----------
-    resources : Iterable[Resource]
+    resources : list[Resource]
         Resources to request.
     batch_size : int
         Number of resources to request in parallel, by default 5.
@@ -45,17 +49,20 @@ def get(
     ResponseIterator
         The server's responses for each resource.
     """
-    return _request("GET", resources, batch_size=batch_size, log_errors=log_errors)
+    return _request(GET, resources, batch_size=batch_size, log_errors=log_errors)
 
 
 def post(
-    resources: Iterable[Resource], *, batch_size: int = 5, log_errors: bool = True
+    resources: list[Resource],
+    *,
+    batch_size: int = 5,
+    log_errors: bool = True,
 ) -> ResponseIterator:
-    """Perform GET HTTP request for each resource in the given batch.
+    """Perform a POST request for each resource.
 
     Parameters
     ----------
-    resources : Iterable[Resource]
+    resources : list[Resource]
         Resources to request.
     batch_size : int
         Number of items to request per batch in parallel, by default 5.
@@ -67,17 +74,20 @@ def post(
     ResponseIterator
         The server's responses for each resource.
     """
-    return _request("POST", resources, batch_size=batch_size, log_errors=log_errors)
+    return _request(POST, resources, batch_size=batch_size, log_errors=log_errors)
 
 
 def put(
-    resources: Iterable[Resource], *, batch_size: int = 5, log_errors: bool = True
+    resources: list[Resource],
+    *,
+    batch_size: int = 5,
+    log_errors: bool = True,
 ) -> ResponseIterator:
-    """Perform PUT HTTP request for each resource in the given batch.
+    """Perform a PUT request for each resource.
 
     Parameters
     ----------
-    resources : Iterable[Resource]
+    resources : list[Resource]
         Resources to request.
     batch_size : int
         Number of items to request per batch in parallel, by default 5.
@@ -89,17 +99,20 @@ def put(
     ResponseIterator
         The server's responses for each resource.
     """
-    return _request("PUT", resources, batch_size=batch_size, log_errors=log_errors)
+    return _request(PUT, resources, batch_size=batch_size, log_errors=log_errors)
 
 
 def patch(
-    resources: Iterable[Resource], *, batch_size: int = 5, log_errors: bool = True
+    resources: list[Resource],
+    *,
+    batch_size: int = 5,
+    log_errors: bool = True,
 ) -> ResponseIterator:
-    """Perform PATCH HTTP request for each resource in the given batch.
+    """Perform a PATCH request for each resource.
 
     Parameters
     ----------
-    resources : Iterable[Resource]
+    resources : list[Resource]
         Resources to request.
     batch_size : int
         Number of items to request per batch in parallel, by default 5.
@@ -111,17 +124,20 @@ def patch(
     ResponseIterator
         The server's responses for each resource.
     """
-    return _request("PATCH", resources, batch_size=batch_size, log_errors=log_errors)
+    return _request(PATCH, resources, batch_size=batch_size, log_errors=log_errors)
 
 
 def delete(
-    resources: Iterable[Resource], *, batch_size: int = 5, log_errors: bool = True
+    resources: list[Resource],
+    *,
+    batch_size: int = 5,
+    log_errors: bool = True,
 ) -> ResponseIterator:
-    """Perform DELETE HTTP request for each resource in the given batch.
+    """Perform a DELETE request for each resource.
 
     Parameters
     ----------
-    resources : Iterable[Resource]
+    resources : list[Resource]
         Resources to request.
     batch_size : int
         Number of items to request per batch in parallel, by default 5.
@@ -133,17 +149,20 @@ def delete(
     ResponseIterator
         The server's responses for each resource.
     """
-    return _request("DELETE", resources, batch_size=batch_size, log_errors=log_errors)
+    return _request(DELETE, resources, batch_size=batch_size, log_errors=log_errors)
 
 
 def head(
-    resources: Iterable[Resource], *, batch_size: int = 5, log_errors: bool = True
+    resources: list[Resource],
+    *,
+    batch_size: int = 5,
+    log_errors: bool = True,
 ) -> ResponseIterator:
-    """Perform HEAD HTTP request for each resource in the given batch.
+    """Perform a HEAD request for each resource.
 
     Parameters
     ----------
-    resources : Iterable[Resource]
+    resources : list[Resource]
         Resources to request.
     batch_size : int
         Number of items to request per batch in parallel, by default 5.
@@ -155,27 +174,23 @@ def head(
     ResponseIterator
         The server's responses for each resource.
     """
-    return _request("HEAD", resources, batch_size=batch_size, log_errors=log_errors)
+    return _request(HEAD, resources, batch_size=batch_size, log_errors=log_errors)
 
 
 def _request(
     method: HTTPMethod,
-    resources: Iterable[Resource],
+    resources: list[Resource],
     *,
     batch_size: int = 5,
-    log_errors: bool = True
+    log_errors: bool = True,
 ) -> ResponseIterator:
-    """Perform HTTP request using the specified method for each resource in the given batch.
-
-    Note
-    ----
-    Only for internal use; preserves the type of the iterable (i.e. generator stays a generator).
+    """Perform a HTTP request using the specified method for each resource.
 
     Parameters
     ----------
     method : HTTPMethod
         HTTP method to use.
-    resources : Iterable[HTTPResource]
+    resources : list[HTTPResource]
         Resources to request.
     batch_size : int
         Number of resources to request in parallel, by default 5.
@@ -187,15 +202,11 @@ def _request(
     ResponseIterator
         The server's responses for each resource.
     """
-    if isinstance(resources, list):
-        return request(
-            [{**resource, "method": method} for resource in resources],
-            batch_size=batch_size,
-            log_errors=log_errors,
-        )
-    else:
-        return request(
-            ({**resource, "method": method} for resource in resources),
-            batch_size=batch_size,
-            log_errors=log_errors,
-        )
+    if not isinstance(resources, list):
+        raise TypeError(f"Expected list of resources, got {type(resources)}")
+
+    return request(
+        [{**resource, "method": method} for resource in resources],
+        batch_size=batch_size,
+        log_errors=log_errors,
+    )
