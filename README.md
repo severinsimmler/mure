@@ -22,7 +22,7 @@ pip install mure
 
 ## Usage
 
-Pass an iterable of dictionaries (a typed dictionary `Resource`, to be precise) with at least a value for `url` and get a `ResponseIterator` with the corresponding responses:
+Pass a list of dictionaries with at least a value for `url` and get a `ResponseIterator` with the corresponding responses. The first request is fired as soon as you access the first response:
 
 ```python
 >>> import mure
@@ -34,7 +34,7 @@ Pass an iterable of dictionaries (a typed dictionary `Resource`, to be precise) 
 ... ]
 >>> responses = mure.get(resources, batch_size=2)
 >>> responses
-<ResponseIterator: 3 pending>
+<ResponseIterator: 3/3 pending>
 >>> for resource, response in zip(resources, responses):
 ...     print(resource, "status code:", response.status)
 ...
@@ -42,28 +42,30 @@ Pass an iterable of dictionaries (a typed dictionary `Resource`, to be precise) 
 {'url': 'https://httpbin.org/get', 'params': {'foo': 'bar'}} status code: 200
 {'url': 'invalid'} status code: 0
 >>> responses
-<ResponseIterator: 0 pending>
+<ResponseIterator: 0/3 pending>
 ```
 
-The keyword argument `batch_size` defines the number of requests to perform in parallel (don't be too greedy). The resources are requested batch-wise, i. e. only one batch of responses is kept in memory (depends of course also on how you use the `ResponseIterator`).
+The keyword argument `batch_size` defines the number of requests to perform in parallel (don't be too greedy). The resources are requested batch-wise, i. e. only one batch of responses is kept in memory (depends of course also on how you use the `ResponseIterator`). Once you start accessing the first response of a batch, the next batch of resources is requested already in the background. So while you are doing something with a batch of responses (e.g. some CPU-heavy operation like parsing HTML), the next batch is already requested in the background.
 
-For example, if you set `batch_size` to `2`, have four resources and execute:
+For example, if you have four resources, set `batch_size` to `2` and execute:
 
 ```python
 >>> next(responses)
 ```
 
-the first two resources are requested in parallel and blocks until both of the responses are available (i.e. if resource 1 takes 1 second and resource 2 takes 10 seconds, it blocks 10 seconds although resource 1 is already available after 1 second). The response of resource 1 is yielded.
+the first two resources are requested in parallel and blocks until both of the responses are available (i.e. if resource 1 takes 1 second and resource 2 takes 10 seconds, it blocks 10 seconds although resource 1 is already available after 1 second). Before the response of resource 1 is yielded, the next batch of resources (i.e. 3 and 4) is already requested in the background.
 
 Executing `next()` a second time:
 
 ```python
->>> next(response)
+>>> next(responses)
 ```
 
-will be super fast, because the response of resource 2 is already available. Executing `next()` a third time will be "slow" again, because the next batch of resources is requested.
+will be super fast, because the response of resource 2 is already available (1 and 2 were in the same batch). If you are lucky, executing `next()` a third time will be fast as well, because the next batch of resources was already requested when you executed `next(responses)` the first time.
 
-However, there is also a convenience function for POST requests:
+### HTTP Methods
+
+There are convenience functions for GET, POST, HEAD, PUT, PATCH and DELETE requests, for example:
 
 ```python
 >>> resources = [
