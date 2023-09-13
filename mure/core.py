@@ -24,6 +24,9 @@ def request(
     ResponseIterator
         The server's responses for each resource.
     """
+    if not isinstance(resources, list):
+        raise TypeError(f"Expected list of resources, got {type(resources)}")
+
     return ResponseIterator(resources, batch_size=batch_size, log_errors=log_errors)
 
 
@@ -202,9 +205,6 @@ def _request(
     ResponseIterator
         The server's responses for each resource.
     """
-    if not isinstance(resources, list):
-        raise TypeError(f"Expected list of resources, got {type(resources)}")
-
     return request(
         [{**resource, "method": method} for resource in resources],
         batch_size=batch_size,
