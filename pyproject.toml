@@ -8,7 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.10"
 aiohttp = { extras = ["speedups"], version = "^3.8.5" }
-orjson = "^3.9.5"
+orjson = "^3.9.7"
 typing-extensions = { version = "^4.7.1", python = "<3.11" }
 
 [tool.poetry.group.dev.dependencies]
