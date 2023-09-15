@@ -1,6 +1,6 @@
 import asyncio
-from asyncio import PriorityQueue, Task
-from typing import Iterable, Iterator
+from asyncio import Event, PriorityQueue, Task
+from typing import AsyncIterator, Iterator
 
 import orjson
 from aiohttp import ClientSession
@@ -30,18 +30,17 @@ class ResponseIterator(Iterator[Response]):
         log_errors : bool, optional
             True if Python errors should be logged, by default True.
         """
+        self.resources = resources
         self.num_resources = len(resources)
         self.pending = len(resources)
         self.batch_size = batch_size
-        self.batches = [
-            resources[i : i + self.batch_size]
-            for i in range(0, self.num_resources, self.batch_size)
-        ]
 
         self._log_errors = log_errors
-        self._queue = PriorityQueue(maxsize=2)  # do not keep more than 2 batches in memory
-        self._tasks: set[Task] = set()
-        self._responses = self._fetch_batches()
+        self._loop = asyncio.get_event_loop()
+        self._queue = PriorityQueue()
+        self._tasks = set()
+        self._events = [Event() for _ in resources]
+        self._responses = self._fetch_responses()
 
     def __repr__(self) -> str:
         """Response iterator representation.
@@ -83,105 +82,126 @@ class ResponseIterator(Iterator[Response]):
         """
         return next(self._responses)
 
-    def _fetch_batches(self):
-        try:
-            # construct a new event loop
-            loop = asyncio.new_event_loop()
+    def _fetch_responses(self) -> Iterator[Response]:
+        """Fetch responses in parallel.
 
-            # set the new event loop as the current one
-            asyncio.set_event_loop(loop)
+        Yields
+        ------
+        Response
+            One response at a time.
+        """
+        # get async generator
+        responses = self._afetch_responses()
 
-            # fetch responses in parallel
-            results = self._afetch_batches()
-            while True:
-                try:
-                    yield loop.run_until_complete(results.__anext__())
-                except StopAsyncIteration:
-                    break
-        finally:
-            if self._tasks:
-                # cancel all tasks if any left
-                for task in self._tasks:
-                    task.cancel()
+        # run the event loop until a response is available and yield it
+        while True:
+            try:
+                yield self._loop.run_until_complete(anext(responses))
+            except StopAsyncIteration:
+                break
 
-                # wait until all tasks are cancelled
-                loop.run_until_complete(asyncio.gather(*self._tasks, return_exceptions=True))
+    def _create_tasks(self, session: ClientSession) -> Iterator[Task]:
+        """Create tasks for each resource.
 
-            # close the event loop
-            asyncio.set_event_loop(None)
-            loop.close()
+        Parameters
+        ----------
+        session : ClientSession
+            Client session to use.
 
-    def _start_fetching(
+        Yields
+        ------
+        Iterator[Task]
+            Tasks to fetch resources.
+        """
+        for i, (resource, event) in enumerate(zip(self.resources, self._events)):
+            # create task in the background
+            yield self._loop.create_task(self._aprocess_resource(i, session, resource, event))
+
+    async def _aprocess_resource(
         self,
         priority: int,
         session: ClientSession,
-        resources: Iterable[HTTPResource],
+        resource: HTTPResource,
+        event: Event,
     ):
-        # create task in the background
-        task = asyncio.create_task(self._afetch_batch(priority, session, resources))
-
-        # keep track of the task
-        self._tasks.add(task)
-
-        # and remove task when it's done
-        task.add_done_callback(self._tasks.discard)
-
-    async def _afetch_batches(self):
-        async with ClientSession() as session:
-            # start processing the first batch in the background
-            self._start_fetching(0, session, self.batches[0])
-
-            for i, batch in enumerate(self.batches[1:], start=1):
-                # start processing the next batch
-                self._start_fetching(i, session, batch)
-
-                # get results of the previous batch from the queue and yield them
-                _, responses = await self._queue.get()
-                for response in responses:
-                    yield response
-                    self.pending -= 1
-
-            # yield results of the last batch from the queue (if any)
-            while not self._queue.empty():
-                _, responses = await self._queue.get()
-                for response in responses:
-                    yield response
-                    self.pending -= 1
-
-    async def _afetch_batch(
-        self,
-        priority: int,
-        session: ClientSession,
-        resources: Iterable[HTTPResource],
-    ):
-        """Fetch each resource in the given batch and put responses in the queue.
+        """Process a resource by fetching and putting it in the queue.
 
         Parameters
         ----------
         priority : int
-            Priority of the batch.
+            Priority of the resource.
+        session : ClientSession
+            Client session to use.
         resource : HTTPResource
             Resource to request.
-
-        Returns
-        -------
-        list[Response]
-            The server's responses for each resource.
+        event : Event
+            Event to set when the response is ready.
         """
-        # create coroutines for each resource
-        coroutines = [self._afetch(session, resource) for resource in resources]
+        # fetch response
+        response = await self._afetch(session, resource)
 
-        # fetch responses in parallel
-        responses = await asyncio.gather(*coroutines)
+        # put response in the queue
+        await self._queue.put((priority, response))
 
-        # put responses in the queue
-        await self._queue.put((priority, responses))
+        # set event to notify that the response is ready
+        event.set()
 
-    async def _afetch(self, session: ClientSession, resource: HTTPResource) -> Response:
-        """Perform HTTP request.
+    def _fill_queue(self, tasks: Iterator[Task]):
+        """Fill the queue with tasks.
 
         Parameters
         ----------
+        tasks : Iterator[Task]
+            Tasks to put in the queue.
+        """
+        if len(self._tasks) < self.batch_size:
+            for task in tasks:
+                # keep track of the task
+                self._tasks.add(task)
+
+                # and remove task when it's done
+                task.add_done_callback(self._tasks.remove)
+
+                if len(self._tasks) >= self.batch_size:
+                    break
+
+    async def _afetch_responses(self) -> AsyncIterator[Response]:
+        """Fetch responses in parallel.
+
+        Yields
+        ------
+        Response
+            The server's responses.
+        """
+        async with ClientSession() as session:
+            # create tasks in the background (lazy)
+            tasks = self._create_tasks(session)
+
+            self._fill_queue(tasks)
+
+            # fill the queue with tasks while yielding responses
+            for event in self._events:
+                # wait for the specific event to be set to preserve order of the resources
+                await event.wait()
+
+                self._fill_queue(tasks)
+
+                # get response from the queue
+                _, response = await self._queue.get()
+                yield response
+
+                self._queue.task_done()
+                self.pending -= 1
+
+                self._fill_queue(tasks)
+
+    async def _afetch(self, session: ClientSession, resource: HTTPResource) -> Response:
+        """Perform a HTTP request.
+
+        Parameters
+        ----------
+        session : ClientSession
+            Client session to use.
         resource : Resource
             Resource to request.
 
@@ -190,12 +210,6 @@ class ResponseIterator(Iterator[Response]):
         Response
             The server's response.
         """
-        if not resource.get("url"):
-            raise KeyError("'url' is missing in the given resource")
-
-        if not resource.get("method"):
-            raise KeyError("'method' is missing in the given resource")
-
         try:
             kwargs = {k: v for k, v in resource.items() if k not in {"method", "url"}}
 
@@ -204,11 +218,12 @@ class ResponseIterator(Iterator[Response]):
                 kwargs["data"] = orjson.dumps(kwargs.pop("json"))
 
             async with session.request(resource["method"], resource["url"], **kwargs) as response:
+                text = await response.text()
                 return Response(
                     status=response.status,
                     reason=response.reason,  # type: ignore
                     ok=response.ok,
-                    text=await response.text(),
+                    text=text,
                     url=response.url.human_repr(),
                     history=[
                         HistoricResponse(
