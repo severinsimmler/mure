@@ -27,6 +27,12 @@ def request(
     if not isinstance(resources, list):
         raise TypeError(f"Expected list of resources, got {type(resources)}")
 
+    if any("method" not in resource for resource in resources):
+        raise KeyError("Missing HTTP method in resource")
+
+    if any("url" not in resource for resource in resources):
+        raise KeyError("Missing URL in resource")
+
     return ResponseIterator(resources, batch_size=batch_size, log_errors=log_errors)
 
 
