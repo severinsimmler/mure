@@ -171,12 +171,13 @@ class ResponseIterator(Iterator[Response]):
         Yields
         ------
         Response
-            The server's responses.
+            The server's response.
         """
         async with ClientSession() as session:
             # create tasks in the background (lazy)
             tasks = self._create_tasks(session)
 
+            # push the first batch of tasks in the queue
             self._fill_queue(tasks)
 
             # fill the queue with tasks while yielding responses
@@ -184,6 +185,7 @@ class ResponseIterator(Iterator[Response]):
                 # wait for the specific event to be set to preserve order of the resources
                 await event.wait()
 
+                # push the next batch of tasks in the queue
                 self._fill_queue(tasks)
 
                 # get response from the queue
@@ -193,6 +195,7 @@ class ResponseIterator(Iterator[Response]):
                 self._queue.task_done()
                 self.pending -= 1
 
+                # push the next batch of tasks in the queue
                 self._fill_queue(tasks)
 
     async def _afetch(self, session: ClientSession, resource: HTTPResource) -> Response:
