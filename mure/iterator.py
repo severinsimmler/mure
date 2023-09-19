@@ -26,7 +26,7 @@ class ResponseIterator(Iterator[Response]):
         resources : list[HTTPResource]
             Resources to request.
         batch_size : int, optional
-            Number of resources to request in parallel, by default 5.
+            Number of resources to request concurrently, by default 5.
         log_errors : bool, optional
             True if Python errors should be logged, by default True.
         """
@@ -36,11 +36,13 @@ class ResponseIterator(Iterator[Response]):
         self.batch_size = batch_size
 
         self._log_errors = log_errors
-        self._loop = asyncio.get_event_loop()
+        self._loop = asyncio.new_event_loop()
         self._queue = PriorityQueue()
-        self._tasks = set()
         self._events = [Event() for _ in resources]
+        self._tasks: set[Task] = set()
         self._responses = self._fetch_responses()
+
+        asyncio.set_event_loop(self._loop)
 
     def __repr__(self) -> str:
         """Response iterator representation.
@@ -82,8 +84,19 @@ class ResponseIterator(Iterator[Response]):
         """
         return next(self._responses)
 
+    def __del__(self):
+        """Cancel open tasks (if any) and close the event loop."""
+        if self._tasks:
+            for task in self._tasks:
+                task.cancel()
+            self._loop.run_until_complete(asyncio.gather(*self._tasks, return_exceptions=True))
+
+        if not self._loop.is_closed():
+            self._loop.close()
+            asyncio.set_event_loop(None)
+
     def _fetch_responses(self) -> Iterator[Response]:
-        """Fetch responses in parallel.
+        """Fetch responses concurrently.
 
         Yields
         ------
@@ -166,7 +179,7 @@ class ResponseIterator(Iterator[Response]):
                     break
 
     async def _afetch_responses(self) -> AsyncIterator[Response]:
-        """Fetch responses in parallel.
+        """Fetch responses concurrently.
 
         Yields
         ------
@@ -190,13 +203,13 @@ class ResponseIterator(Iterator[Response]):
 
                 # get response from the queue
                 _, response = await self._queue.get()
-                yield response
-
-                self._queue.task_done()
-                self.pending -= 1
 
                 # push the next batch of tasks in the queue
                 self._fill_queue(tasks)
+
+                yield response
+                self._queue.task_done()
+                self.pending -= 1
 
     async def _afetch(self, session: ClientSession, resource: HTTPResource) -> Response:
         """Perform a HTTP request.
