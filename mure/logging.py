@@ -1,6 +1,7 @@
-import logging
 import sys
-from logging import StreamHandler
+from logging import Formatter
+from logging import Logger as _Logger
+from logging import StreamHandler, getLogger
 
 DEBUG = 10
 INFO = 20
@@ -21,10 +22,12 @@ class Logger:
         self.name = name
 
         # return a logger with the specified name, creating it if necessary
-        self._logger = logging.getLogger(name)
+        self._logger = getLogger(name)
+        self._formatter = Formatter("[%(asctime)s] [%(levelname)s] %(message)s")
 
         # stream handler to stdout
         self._stream_handler = StreamHandler(sys.stdout)
+        self._stream_handler.setFormatter(self._formatter)
         self._logger.addHandler(self._stream_handler)
 
         # set level of both the logger and the handler to INFO by default
@@ -116,7 +119,7 @@ class Logger:
         return f"<Logger: {self.name} ({self.level})>"
 
 
-def get_logger(name: str) -> logging.Logger:
+def get_logger(name: str) -> _Logger:
     """Gets the specified logger object.
 
     Parameters
@@ -126,10 +129,10 @@ def get_logger(name: str) -> logging.Logger:
 
     Returns
     -------
-    logging.Logger
+    _Logger
         Logger of the specified module.
     """
-    return logging.getLogger(name)
+    return getLogger(name)
 
 
 def logger_exists(name: str) -> bool:
@@ -145,7 +148,7 @@ def logger_exists(name: str) -> bool:
     bool
         True if logger exists, False otherwise.
     """
-    return logging.getLogger(name).hasHandlers()
+    return getLogger(name).hasHandlers()
 
 
 def set_level(name: str, level: int | str):
@@ -158,7 +161,7 @@ def set_level(name: str, level: int | str):
     level : int | str
         Level to set.
     """
-    logger = logging.getLogger(name)
+    logger = getLogger(name)
 
     # translate string to integer
     if isinstance(level, str):
