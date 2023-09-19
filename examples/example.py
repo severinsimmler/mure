@@ -18,5 +18,5 @@ resources: list[Resource] = [
 ]
 
 
-for response in mure.get(resources, batch_size=5, log_errors=False):
-    pass
+for i, response in enumerate(mure.get(resources, batch_size=5, log_errors=False)):
+    print(f"Received response {i}")

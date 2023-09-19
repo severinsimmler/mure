@@ -150,6 +150,8 @@ class ResponseIterator(Iterator[Response]):
         event : Event
             Event to set when the response is ready.
         """
+        LOGGER.debug(f"Started {priority}")
+
         # fetch response
         response = await self._afetch(session, resource)
 
@@ -159,7 +161,9 @@ class ResponseIterator(Iterator[Response]):
         # set event to notify that the response is ready
         event.set()
 
-    def _fill_queue(self, tasks: Iterator[Task]):
+        LOGGER.debug(f"Finished {priority}")
+
+    def _process_batch(self, tasks: Iterator[Task]):
         """Fill the queue with tasks.
 
         Parameters
@@ -187,25 +191,24 @@ class ResponseIterator(Iterator[Response]):
             The server's response.
         """
         async with ClientSession() as session:
-            # create tasks in the background (lazy)
+            # create tasks (lazy)
             tasks = self._create_tasks(session)
 
-            # push the first batch of tasks in the queue
-            self._fill_queue(tasks)
+            # process first batch of tasks
+            self._process_batch(tasks)
 
-            # fill the queue with tasks while yielding responses
             for event in self._events:
                 # wait for the specific event to be set to preserve order of the resources
                 await event.wait()
 
-                # push the next batch of tasks in the queue
-                self._fill_queue(tasks)
+                # process next batch of tasks
+                self._process_batch(tasks)
 
                 # get response from the queue
-                _, response = await self._queue.get()
+                i, response = await self._queue.get()
 
-                # push the next batch of tasks in the queue
-                self._fill_queue(tasks)
+                # process next batch of tasks
+                self._process_batch(tasks)
 
                 yield response
                 self._queue.task_done()
