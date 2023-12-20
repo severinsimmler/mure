@@ -1,29 +1,10 @@
 default_stages: [commit]
 repos:
-- repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.4.0
-  hooks:
-  - id: end-of-file-fixer
-    stages: [commit]
-  - id: mixed-line-ending
-  - id: trailing-whitespace
-    stages: [commit]
-
-- repo: https://github.com/pre-commit/mirrors-isort
-  rev: v5.10.1
-  hooks:
-  - id: isort
-    additional_dependencies: [toml]
-    args: [--settings-path=pyproject.toml]
-
-- repo: https://github.com/psf/black
-  rev: 23.9.1
-  hooks:
-  - id: black
-    args: [--config=pyproject.toml]
-
-- repo: https://github.com/hadialqattan/pycln
-  rev: v2.2.2
-  hooks:
-    - id: pycln
-      args: [--config=pyproject.toml]
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.7
+    hooks:
+      - id: ruff
+        types_or: [python, pyi, jupyter]
+        args: [--fix]
+      - id: ruff-format
+        types_or: [python, pyi, jupyter]

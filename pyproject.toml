@@ -13,28 +13,79 @@ typing-extensions = { version = "^4.7.1", python = "<3.11" }
 chardet = "^5.2.0"
 
 [tool.poetry.group.dev.dependencies]
-black = "^23.7.0"
-isort = "^5.12.0"
-pycln = "^2.2.2"
 pytest = "^7.4.1"
 pre-commit = "^3.4.0"
-
-[tool.black]
-line-length = 99
-
-[tool.isort]
-line_length = 99
-use_parentheses = true
-include_trailing_comma = true
-multi_line_output = 3
-
-[tool.pycln]
-all = true
-exclude = "__init__.py"
+ruff = "^0.1.8"
 
 [tool.ruff]
 line-length = 99
-exclude = ["tests"]
+extend-include = ["*.ipynb"]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = [
+    "F401", # Module imported but unused
+]
+"*.ipynb" = [
+    "B018", # Found useless expression
+    "E402", # Module level import not at top of file
+    "E501", # Line too long
+]
+"test_*.py" = [
+    "D101", # Missing docstring in public class
+    "D102", # Missing docstring in public method
+    "D103", # Missing docstring in public function
+    "D400", # First line should end with a period
+    "D401", # First line should be in imperative mood
+    "E501", # Line too long
+]
+
+[tool.ruff.format]
+line-ending = "lf"
+
+[tool.ruff.lint]
+select = [
+    "YTT", # flake8-2020
+    "FBT", # flake8-boolean-trap
+    "B",   # flake8-bugbear
+    "S",   # flake8-bandit
+    "ISC", # flake8-implicit-str-concat
+    "ICN", # flake8-import-conventions
+    "PIE", # flake8-pie
+    "PYI", # flake8-pyi
+    "Q",   # flake8-quotes
+    "RSE", # flake8-raise
+    "RET", # flake8-return
+    "SIM", # flake8-simplify
+    "I",   # isort
+    "NPY", # NumPy-specific rules
+    "N",   # pep8-naming
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "D",   # pydocstyle
+    "F",   # Pyflakes
+    "UP",  # pyupgrade
+    "RUF", # Ruff-specific rules
+]
+ignore = [
+    "D100",   # Missing docstring in public module
+    "D104",   # Missing docstring in public package
+    "E402",   # Module level import not at top of file
+    "ISC001", # Implicit string concatenation
+    "N803",   # Argument name should be lowercase
+    "N806",   # Variable in function should be lowercase
+    "RUF002", # Docstring contains ambiguous character
+    "RUF003", # Comment contains ambiguous character
+    "RUF001", # String contains ambiguous character
+    "S608",   # Possible SQL injection vector through string-based query construction
+    "S110",   # Consider logging the exception before pass
+    "S112",   # Consider logging the exception before continue
+    "S105",   # Possible hardcoded password
+    "S320",   # Using lxml to parse untrusted data
+    "S311",   # Standard pseudo-random generators are not suitable for cryptographic purposes
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
 
 [build-system]
 requires = ["poetry-core"]

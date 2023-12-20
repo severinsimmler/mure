@@ -1,7 +1,6 @@
 import sys
-from logging import Formatter
+from logging import Formatter, StreamHandler, getLogger
 from logging import Logger as _Logger
-from logging import StreamHandler, getLogger
 
 DEBUG = 10
 INFO = 20
@@ -11,14 +10,9 @@ LEVELS = {"DEBUG": DEBUG, "INFO": INFO, "WARNING": WARNING, "ERROR": ERROR}
 
 
 class Logger:
-    def __init__(self, name: str):
-        """Basic logger.
+    """Basic logger."""
 
-        Parameters
-        ----------
-        name : str
-            Name of the logger.
-        """
+    def __init__(self, name: str):
         self.name = name
 
         # return a logger with the specified name, creating it if necessary
@@ -34,6 +28,13 @@ class Logger:
         self.set_level("INFO")
 
     def set_level(self, level: str | int):
+        """Set log level.
+
+        Parameters
+        ----------
+        level : str | int
+            Level to set.
+        """
         # translate string to integer
         if isinstance(level, str):
             level = LEVELS[level.upper()]
@@ -57,7 +58,7 @@ class Logger:
             self._logger._log(DEBUG, message, ())
 
     def info(self, message: str):
-        """Info log message
+        """Info log message.
 
         Parameters
         ----------
@@ -116,11 +117,12 @@ class Logger:
         return self._logger.level
 
     def __repr__(self):
+        """Representation of the logger."""
         return f"<Logger: {self.name} ({self.level})>"
 
 
 def get_logger(name: str) -> _Logger:
-    """Gets the specified logger object.
+    """Get the specified logger object.
 
     Parameters
     ----------
@@ -136,7 +138,7 @@ def get_logger(name: str) -> _Logger:
 
 
 def logger_exists(name: str) -> bool:
-    """Checks if a logger exists for the specified module.
+    """Check if a logger exists for the specified module.
 
     Parameters
     ----------
@@ -152,7 +154,7 @@ def logger_exists(name: str) -> bool:
 
 
 def set_level(name: str, level: int | str):
-    """Sets log level for the specified logger.
+    """Set log level for the specified logger.
 
     Parameters
     ----------

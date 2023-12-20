@@ -135,7 +135,7 @@ class Response:
         return getattr(self, attr)
 
     def is_same_netloc(self, url: str) -> bool:
-        """True if the given URL has the same netloc as the response URL.
+        """Return True if the given URL has the same netloc as the response URL.
 
         Parameters
         ----------

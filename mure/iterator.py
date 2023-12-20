@@ -1,8 +1,8 @@
 import asyncio
 from asyncio import Event, PriorityQueue, Task
 from typing import AsyncIterator, Iterator
-import chardet
 
+import chardet
 import orjson
 from aiohttp import ClientSession
 
@@ -13,6 +13,8 @@ LOGGER = Logger(__name__)
 
 
 class ResponseIterator(Iterator[Response]):
+    """Response iterator that fetches responses concurrently."""
+
     def __init__(
         self,
         resources: list[HTTPResource],
@@ -65,7 +67,7 @@ class ResponseIterator(Iterator[Response]):
         """
         return self.pending
 
-    def __iter__(self) -> Iterator[Response]:
+    def __iter__(self) -> Iterator[Response]:  # noqa: PYI034
         """Yield one response at a time.
 
         Yields
