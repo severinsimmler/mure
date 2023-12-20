@@ -1,6 +1,7 @@
 import asyncio
 from asyncio import Event, PriorityQueue, Task
 from typing import AsyncIterator, Iterator
+import chardet
 
 import orjson
 from aiohttp import ClientSession
@@ -237,7 +238,19 @@ class ResponseIterator(Iterator[Response]):
                 kwargs["data"] = orjson.dumps(kwargs.pop("json"))
 
             async with session.request(resource["method"], resource["url"], **kwargs) as response:
-                text = await response.text()
+                content = await response.content.read()
+                encoding = response.get_encoding()
+
+                try:
+                    text = content.decode(encoding, errors="replace")
+                except (LookupError, TypeError):
+                    # LookupError is raised if the encoding was not found which could
+                    # indicate a misspelling or similar mistake
+                    #
+                    # TypeError can be raised if encoding is None
+                    encoding = chardet.detect(content)["encoding"]
+                    text = content.decode(encoding, errors="replace")
+
                 return Response(
                     status=response.status,
                     reason=response.reason,  # type: ignore
