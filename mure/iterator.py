@@ -1,6 +1,6 @@
 import asyncio
 from asyncio import Event, PriorityQueue, Task
-from typing import AsyncIterator, Iterator
+from typing import AsyncIterator, Iterator, Self
 
 import chardet
 import orjson
@@ -45,8 +45,6 @@ class ResponseIterator(Iterator[Response]):
         self._tasks: set[Task] = set()
         self._responses = self._fetch_responses()
 
-        asyncio.set_event_loop(self._loop)
-
     def __repr__(self) -> str:
         """Response iterator representation.
 
@@ -67,7 +65,7 @@ class ResponseIterator(Iterator[Response]):
         """
         return self.pending
 
-    def __iter__(self) -> Iterator[Response]:  # noqa: PYI034
+    def __iter__(self) -> Self:
         """Yield one response at a time.
 
         Yields
@@ -75,7 +73,7 @@ class ResponseIterator(Iterator[Response]):
         Iterator[Response]
             Response iteratoresponse.
         """
-        yield from self._responses
+        return self
 
     def __next__(self) -> Response:
         """Return the next response.
@@ -96,7 +94,6 @@ class ResponseIterator(Iterator[Response]):
 
         if not self._loop.is_closed():
             self._loop.close()
-            asyncio.set_event_loop(None)
 
     def _fetch_responses(self) -> Iterator[Response]:
         """Fetch responses concurrently.
@@ -106,6 +103,8 @@ class ResponseIterator(Iterator[Response]):
         Response
             One response at a time.
         """
+        asyncio.set_event_loop(self._loop)
+
         # get async generator
         responses = self._afetch_responses()
 
@@ -114,6 +113,8 @@ class ResponseIterator(Iterator[Response]):
             try:
                 yield self._loop.run_until_complete(anext(responses))
             except StopAsyncIteration:
+                self._loop.close()
+                asyncio.set_event_loop(None)
                 break
 
     def _create_tasks(self, session: ClientSession) -> Iterator[Task]:
