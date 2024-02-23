@@ -1,6 +1,6 @@
 import asyncio
 from asyncio import Event, PriorityQueue, Task
-from typing import AsyncIterator, Iterator, Self
+from typing import AsyncGenerator, Iterator, Self
 
 import chardet
 import orjson
@@ -22,7 +22,7 @@ class ResponseIterator(Iterator[Response]):
         batch_size: int = 5,
         log_errors: bool = True,
     ):
-        """Initialize a response iteratoresponse.
+        """Initialize a response iterator.
 
         Parameters
         ----------
@@ -44,6 +44,7 @@ class ResponseIterator(Iterator[Response]):
         self._events = [Event() for _ in resources]
         self._tasks: set[Task] = set()
         self._responses = self._fetch_responses()
+        self._generator = None
 
     def __repr__(self) -> str:
         """Response iterator representation.
@@ -71,7 +72,7 @@ class ResponseIterator(Iterator[Response]):
         Yields
         ------
         Iterator[Response]
-            Response iteratoresponse.
+            Response iterator.
         """
         return self
 
@@ -87,6 +88,13 @@ class ResponseIterator(Iterator[Response]):
 
     def __del__(self):
         """Cancel open tasks (if any) and close the event loop."""
+        self._cleanup()
+
+    def _cleanup(self):
+        """Cancel open tasks (if any) and close the event loop."""
+        if self._generator:
+            self._loop.run_until_complete(self._generator.aclose())
+
         if self._tasks:
             for task in self._tasks:
                 task.cancel()
@@ -94,6 +102,7 @@ class ResponseIterator(Iterator[Response]):
 
         if not self._loop.is_closed():
             self._loop.close()
+            asyncio.set_event_loop(None)
 
     def _fetch_responses(self) -> Iterator[Response]:
         """Fetch responses concurrently.
@@ -105,16 +114,15 @@ class ResponseIterator(Iterator[Response]):
         """
         asyncio.set_event_loop(self._loop)
 
-        # get async generator
-        responses = self._afetch_responses()
+        # set async generator
+        self._generator = self._afetch_responses()
 
         # run the event loop until a response is available and yield it
         while True:
             try:
-                yield self._loop.run_until_complete(anext(responses))
+                yield self._loop.run_until_complete(anext(self._generator))
             except StopAsyncIteration:
-                self._loop.close()
-                asyncio.set_event_loop(None)
+                self._cleanup()
                 break
 
     def _create_tasks(self, session: ClientSession) -> Iterator[Task]:
@@ -186,7 +194,7 @@ class ResponseIterator(Iterator[Response]):
                 if len(self._tasks) >= self.batch_size:
                     break
 
-    async def _afetch_responses(self) -> AsyncIterator[Response]:
+    async def _afetch_responses(self) -> AsyncGenerator[Response, None]:
         """Fetch responses concurrently.
 
         Yields
@@ -241,7 +249,7 @@ class ResponseIterator(Iterator[Response]):
                 kwargs["data"] = orjson.dumps(kwargs.pop("json"))
 
             async with session.request(resource["method"], resource["url"], **kwargs) as response:
-                content = await response.content.read()
+                content = await response.read()
                 encoding = response.get_encoding()
 
                 try:
@@ -256,14 +264,14 @@ class ResponseIterator(Iterator[Response]):
 
                 return Response(
                     status=response.status,
-                    reason=response.reason,  # type: ignore
+                    reason=response.reason,
                     ok=response.ok,
                     text=text,
                     url=response.url.human_repr(),
                     history=[
                         HistoricResponse(
                             status=h.status,
-                            reason=h.reason,  # type: ignore
+                            reason=h.reason,
                             ok=h.ok,
                             url=h.url.human_repr(),
                         )
