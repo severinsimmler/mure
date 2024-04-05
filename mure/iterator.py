@@ -92,6 +92,9 @@ class ResponseIterator(Iterator[Response]):
 
     def _cleanup(self):
         """Cancel open tasks (if any) and close the event loop."""
+        if self._loop.is_closed():
+            return
+
         if self._generator:
             self._loop.run_until_complete(self._generator.aclose())
 
