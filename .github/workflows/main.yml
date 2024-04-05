@@ -11,22 +11,22 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: actions/setup-python@v2
-        name: Install Python
+      - name: Install Python
+        uses: actions/setup-python@v2
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
-      - name: Install Poetry
-        run: pip install poetry
+      - name: Install Rye
+        uses: eifinger/setup-rye@v2
 
       - name: Install dependencies
-        run: poetry install
+        run: rye sync
 
       - name: Run tests
-        run: poetry run pytest tests
+        run: pytest tests
 
       - name: Build wheels
-        run: poetry build
+        run: rye build
 
       - name: Publish wheels
-        run: poetry publish --username ${{ secrets.PYPI_USER }} --password ${{ secrets.PYPI_PW }}
+        run: rye publish --yes --token ${{ secrets.PYPI_TOKEN }}
