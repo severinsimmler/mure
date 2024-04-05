@@ -1,5 +1,6 @@
+from json import JSONDecodeError
+
 import pytest
-from orjson import JSONDecodeError
 
 import mure
 from mure.dtos import HTTPResource, Resource, Response

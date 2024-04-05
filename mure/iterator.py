@@ -1,9 +1,9 @@
 import asyncio
 from asyncio import Event, PriorityQueue, Task
-from typing import AsyncGenerator, Iterator, Self
+from collections.abc import AsyncGenerator, Iterator
+from typing import Self
 
 import chardet
-import orjson
 from aiohttp import ClientSession
 
 from mure.dtos import HistoricResponse, HTTPResource, Response
@@ -138,7 +138,7 @@ class ResponseIterator(Iterator[Response]):
         Iterator[Task]
             Tasks to fetch resources.
         """
-        for i, (resource, event) in enumerate(zip(self.resources, self._events)):
+        for i, (resource, event) in enumerate(zip(self.resources, self._events, strict=False)):
             # create task in the background
             yield self._loop.create_task(self._aprocess_resource(i, session, resource, event))
 
@@ -243,10 +243,6 @@ class ResponseIterator(Iterator[Response]):
         """
         try:
             kwargs = {k: v for k, v in resource.items() if k not in {"method", "url"}}
-
-            # orjson.dumps() is faster than json.dumps() which is used by default
-            if kwargs.get("json") and not kwargs.get("data"):
-                kwargs["data"] = orjson.dumps(kwargs.pop("json"))
 
             async with session.request(resource["method"], resource["url"], **kwargs) as response:
                 content = await response.read()

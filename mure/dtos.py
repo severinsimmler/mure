@@ -1,17 +1,13 @@
+import json
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from ssl import SSLContext
 from types import SimpleNamespace
-from typing import Any, Iterable, Literal, Mapping, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 from urllib.parse import urlparse
 
-import orjson
 from aiohttp import BasicAuth, ClientTimeout, Fingerprint
 from aiohttp.typedefs import LooseCookies, LooseHeaders, StrOrURL
-
-try:
-    from typing import NotRequired
-except ImportError:
-    from typing_extensions import NotRequired
 
 # allowed http methods
 GET = "GET"
@@ -117,7 +113,7 @@ class Response:
         Any
             Parsed Python objects.
         """
-        return orjson.loads(self.text)
+        return json.loads(self.text)
 
     def __getitem__(self, attr: str) -> int | str | bool:
         """Get the specified attribute.
