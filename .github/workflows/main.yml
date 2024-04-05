@@ -20,7 +20,7 @@ jobs:
         uses: eifinger/setup-rye@v2
 
       - name: Install dependencies
-        run: rye sync
+        run: rye sync && source .venv/bin/activate
 
       - name: Run tests
         run: pytest tests
