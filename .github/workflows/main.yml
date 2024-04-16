@@ -24,7 +24,7 @@ jobs:
         run: rye sync && source .venv/bin/activate
 
       - name: Run tests
-        run: pytest tests
+        run: python -m pytest tests
 
       - name: Build wheels
         run: rye build
