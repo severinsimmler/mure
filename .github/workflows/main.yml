@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-#    tags: "*"
 
 jobs:
   build:
@@ -30,5 +29,5 @@ jobs:
       - name: Build wheels
         run: rye build
 
-      - name: Publish wheels
+      # - name: Publish wheels
         # run: rye publish --yes --token ${{ secrets.PYPI_TOKEN }}
