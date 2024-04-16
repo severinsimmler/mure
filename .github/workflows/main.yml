@@ -1,8 +1,8 @@
 name: "Build"
 
-on:
-  push:
-    tags: "*"
+#on:
+#  push:
+#    tags: "*"
 
 jobs:
   build:
@@ -29,4 +29,4 @@ jobs:
         run: rye build
 
       - name: Publish wheels
-        run: rye publish --yes --token ${{ secrets.PYPI_TOKEN }}
+        # run: rye publish --yes --token ${{ secrets.PYPI_TOKEN }}
