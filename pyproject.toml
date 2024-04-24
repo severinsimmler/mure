@@ -1,25 +1,19 @@
-[project]
+[tool.poetry]
 name = "mure"
-version = "1.0.0a6"
+version = "1.0.0a7"
 description = "Perform multiple HTTP requests concurrently – without worrying about async functions."
-authors = [{ name = "Severin Simmler", email = "s.simmler@snapaddy.com" }]
-dependencies = ["aiohttp>=3.9.3", "chardet>=5.2.0"]
+authors = ["Severin Simmler <s.simmler@snapaddy.com>"]
 readme = "README.md"
-requires-python = ">= 3.11, < 4"
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+[tool.poetry.dependencies]
+python = "^3.11"
+aiohttp = { extras = ["speedups"], version = "^3.8.5" }
+chardet = "^5.2.0"
 
-[tool.rye]
-managed = true
-dev-dependencies = ["pytest>=8.1.1", "pre-commit>=3.7.0"]
-
-[tool.hatch.metadata]
-allow-direct-references = true
-
-[tool.hatch.build.targets.wheel]
-packages = ["mure"]
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.1"
+pre-commit = "^3.4.0"
+ruff = "^0.4.1"
 
 [tool.ruff]
 line-length = 99
@@ -87,8 +81,11 @@ ignore = [
     "S105",   # Possible hardcoded password
     "S320",   # Using lxml to parse untrusted data
     "S311",   # Standard pseudo-random generators are not suitable for cryptographic purposes
-    "S301",   # Use of `pickle` and modules that wrap it
 ]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

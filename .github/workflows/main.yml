@@ -1,8 +1,8 @@
-name: "Build"
+name: 'Build'
 
 on:
   push:
-    tags: "*"
+    tags: '*'
 
 jobs:
   build:
@@ -11,17 +11,22 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install Rye
-        uses: eifinger/setup-rye@v2
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: '3.12'
+
+      - name: Install Poetry
+        run: pip install poetry
 
       - name: Install dependencies
-        run: rye sync && source .venv/bin/activate
+        run: poetry install
 
       - name: Run tests
-        run: python -m pytest tests
+        run: poetry run pytest tests
 
       - name: Build wheels
-        run: rye build
+        run: poetry build
 
       - name: Publish wheels
-        run: rye publish --yes --token ${{ secrets.PYPI_TOKEN }}
+        run: poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }} && poetry publish
