@@ -1,157 +1,114 @@
-import json
 import shelve
 from abc import ABC, abstractmethod
-from hashlib import blake2b
 from pathlib import Path
 
-from mure.dtos import HTTPResource, Response
+from mure.models import Request, Response
 
 
 class Cache(ABC):
-    """Abstract class for a cache."""
+    """Abstract class for a cache to store responses."""
 
     @abstractmethod
-    def has(self, resource: HTTPResource) -> bool:
-        """Check if a resource is in the cache.
+    def has(self, request: Request) -> bool:
+        """Check if a request (and its corresponding response) is in the cache.
 
         Parameters
         ----------
-        resource : HTTPResource
-            Resource to check if it's in the cache.
+        request : Request
+            Request to check if it's in the cache.
 
         Returns
         -------
         bool
-            True if the resource is in the cache; otherwise, False.
+            True if the request is in the cache; otherwise, False.
         """
 
     @abstractmethod
-    def get(self, resource: HTTPResource) -> Response | None:
-        """Get the response for the specified resource from the cache.
+    def get(self, request: Request) -> Response | None:
+        """Get the response for the specified request from the cache.
 
         Parameters
         ----------
-        resource : HTTPResource
-            Resource to get response from the cache.
+        request : Request
+            Request to get response from the cache.
 
         Returns
         -------
         Response | None
-            Response from the cache or None if the resource is not in the cache.
+            Response from the cache or None if the request is not in the cache.
         """
 
     @abstractmethod
-    def set(self, resource: HTTPResource, response: Response):
-        """Save a resource and its response to the cache.
+    def set(self, request: Request, response: Response):
+        """Save a request and its response to the cache.
 
         Parameters
         ----------
-        resource : HTTPResource
-            Resource to save to the cache.
+        request : Request
+            Request to save to the cache.
         response : Response
             Response to save to the cache.
         """
 
-    def identify_resource(self, resource: HTTPResource) -> str:
-        """Identify a resource.
 
-        Parameters
-        ----------
-        resource : HTTPResource
-            Resource to get an identifier for.
-
-        Returns
-        -------
-        str
-            JSON representation of the resource.
-        """
-        # generate a hash based on the components
-        key = blake2b(digest_size=8)
-        for part in [
-            resource["method"],
-            resource["url"],
-            json.dumps(resource.get("params"), sort_keys=True, ensure_ascii=False),
-            json.dumps(resource.get("data"), sort_keys=True, ensure_ascii=False),
-            json.dumps(resource.get("json"), sort_keys=True, ensure_ascii=False),
-        ]:
-            key.update(self._encode(part))
-
-        return key.hexdigest()
-
-    @staticmethod
-    def _encode(value: str) -> bytes:
-        """Encode a string to bytes.
-
-        Parameters
-        ----------
-        value : str
-            String to encode.
-
-        Returns
-        -------
-        bytes
-            Encoded string.
-        """
-        if not value:
-            return b""
-
-        return value if isinstance(value, bytes) else str(value).encode("utf-8")
-
-
-class InMemoryCache(Cache):
+class MemoryCache(Cache):
     """Simple in-memory cache."""
 
     def __init__(self):
         self._cache = {}
 
-    def has(self, resource: HTTPResource) -> bool:
-        """Check if a resource is in the cache.
+    def has(self, request: Request) -> bool:
+        """Check if a request (and its corresponding response) is in the cache.
 
         Parameters
         ----------
-        resource : HTTPResource
-            Resource to check if it's in the cache.
+        request : Request
+            Request to check if it's in the cache.
 
         Returns
         -------
         bool
-            True if the resource is in the cache; otherwise, False.
+            True if the request is in the cache; otherwise, False.
         """
-        return self.identify_resource(resource) in self._cache
+        return request in self._cache
 
-    def get(self, resource: HTTPResource) -> Response | None:
-        """Get the response for the specified resource from the cache.
+    def get(self, request: Request) -> Response | None:
+        """Get the response for the specified request from the cache.
 
         Parameters
         ----------
-        resource : HTTPResource
-            Resource to get response from the cache.
+        request : Request
+            Request to get response from the cache.
 
         Returns
         -------
         Response | None
-            Response from the cache or None if the resource is not in the cache.
+            Response from the cache or None if the request is not in the cache.
         """
-        return self._cache.get(self.identify_resource(resource))
+        return self._cache.get(request)
 
-    def set(self, resource: HTTPResource, response: Response):
-        """Save a resource and its response to the cache.
+    def set(self, request: Request, response: Response):
+        """Save a request and its response to the cache.
 
         Parameters
         ----------
-        resource : HTTPResource
-            Resource to save to the cache.
+        request : Request
+            Request to save to the cache.
         response : Response
             Response to save to the cache.
         """
-        self._cache[self.identify_resource(resource)] = response
+        self._cache[request] = response
 
 
-class ShelveCache(InMemoryCache):
-    """Shelve cache."""
+class DiskCache(MemoryCache):
+    """Simple on-disk cache."""
 
     def __init__(self, path: Path = Path("mure-cache.shelve")):
         super().__init__()
 
         self.path = path
         self._cache = shelve.open(str(self.path.resolve()))
+
+    def __del__(self):
+        """Close the cache."""
+        self._cache.close()
