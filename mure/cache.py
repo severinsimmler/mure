@@ -1,6 +1,7 @@
 import json
 import shelve
 from abc import ABC, abstractmethod
+from hashlib import blake2b
 from pathlib import Path
 
 from mure.dtos import HTTPResource, Response
@@ -40,7 +41,7 @@ class Cache(ABC):
         """
 
     @abstractmethod
-    def save(self, resource: HTTPResource, response: Response):
+    def set(self, resource: HTTPResource, response: Response):
         """Save a resource and its response to the cache.
 
         Parameters
@@ -64,19 +65,37 @@ class Cache(ABC):
         str
             JSON representation of the resource.
         """
-        # TODO improve this
-        return json.dumps(
-            {
-                "method": resource["method"],
-                "url": resource["url"],
-                "headers": resource.get("headers"),
-                "params": resource.get("params"),
-                "data": resource.get("data"),
-                "json": resource.get("json"),
-            },
-            sort_keys=True,
-            ensure_ascii=False,
-        )
+        # generate a hash based on the components
+        key = blake2b(digest_size=8)
+        for part in [
+            resource["method"],
+            resource["url"],
+            json.dumps(resource.get("params"), sort_keys=True, ensure_ascii=False),
+            json.dumps(resource.get("data"), sort_keys=True, ensure_ascii=False),
+            json.dumps(resource.get("json"), sort_keys=True, ensure_ascii=False),
+        ]:
+            key.update(self._encode(part))
+
+        return key.hexdigest()
+
+    @staticmethod
+    def _encode(value: str) -> bytes:
+        """Encode a string to bytes.
+
+        Parameters
+        ----------
+        value : str
+            String to encode.
+
+        Returns
+        -------
+        bytes
+            Encoded string.
+        """
+        if not value:
+            return b""
+
+        return value if isinstance(value, bytes) else str(value).encode("utf-8")
 
 
 class InMemoryCache(Cache):
@@ -115,7 +134,7 @@ class InMemoryCache(Cache):
         """
         return self._cache.get(self.identify_resource(resource))
 
-    def save(self, resource: HTTPResource, response: Response):
+    def set(self, resource: HTTPResource, response: Response):
         """Save a resource and its response to the cache.
 
         Parameters

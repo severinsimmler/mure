@@ -177,13 +177,15 @@ class ResponseIterator(Iterator[Response]):
 
         # if cache is given and has the resource, use it
         if self.cache and self.cache.has(resource):
+            LOGGER.debug("Found response in cache")
             response = self.cache.get(resource)
         else:
             response = await self._afetch(session, resource)
 
             # save response to cache
             if self.cache:
-                self.cache.save(resource, response)
+                self.cache.set(resource, response)
+                LOGGER.debug("Saved response to cache")
 
         # put response in the queue
         await self._queue.put((priority, response))
