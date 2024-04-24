@@ -1,5 +1,17 @@
 import json
-from typing import Any, Literal, Mapping
+from typing import Any, Literal, Mapping, NotRequired, TypedDict
+
+Method = Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"]
+
+
+class Resource(TypedDict):
+    """Resource to request."""
+
+    url: str
+    headers: NotRequired[Mapping[str, str] | None]
+    params: NotRequired[Mapping[str, str] | None]
+    data: NotRequired[Any | None]
+    timeout: NotRequired[int | None]
 
 
 class Request:
@@ -23,7 +35,7 @@ class Request:
 
     def __init__(
         self,
-        method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"],
+        method: Method,
         url: str,
         *,
         headers: Mapping[str, str] | None = None,
