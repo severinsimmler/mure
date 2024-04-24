@@ -11,6 +11,7 @@ class Resource(TypedDict):
     headers: NotRequired[Mapping[str, str] | None]
     params: NotRequired[Mapping[str, str] | None]
     data: NotRequired[Any | None]
+    json: NotRequired[Any | None]
     timeout: NotRequired[int | None]
 
 
@@ -29,6 +30,8 @@ class Request:
         URL parameters, by default None.
     data : Any | None, optional
         Request body, by default None.
+    json : Any | None, optional
+        JSON request body, by default None.
     timeout : int | None, optional
         Request timeout in seconds, by default None.
     """
@@ -41,6 +44,7 @@ class Request:
         headers: Mapping[str, str] | None = None,
         params: Mapping[str, str] | None = None,
         data: Any | None = None,
+        json: Any | None = None,
         timeout: int | None = None,
     ):
         self.method = method
@@ -48,6 +52,7 @@ class Request:
         self.headers = headers
         self.params = params
         self.data = data
+        self.json = json
         self.timeout = timeout
 
     def __hash__(self) -> int:
@@ -57,6 +62,7 @@ class Request:
                 self.method,
                 self.url,
                 json.dumps(self.params, sort_keys=True, ensure_ascii=False).lower(),
+                json.dumps(self.json, sort_keys=True, ensure_ascii=False).lower(),
                 self.data
                 if isinstance(self.data, (str, bytes))
                 else json.dumps(self.data, sort_keys=True, ensure_ascii=False),

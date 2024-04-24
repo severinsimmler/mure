@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "mure"
-version = "1.0.0a7"
-description = "Perform multiple HTTP requests concurrently – without worrying about async functions."
+version = "1.0.0b1"
+description = "Perform multiple HTTP requests concurrently – without worrying about async/await."
 authors = ["Severin Simmler <s.simmler@snapaddy.com>"]
 readme = "README.md"
 
@@ -81,6 +81,7 @@ ignore = [
     "S105",   # Possible hardcoded password
     "S320",   # Using lxml to parse untrusted data
     "S311",   # Standard pseudo-random generators are not suitable for cryptographic purposes
+    "S301",   # Pickle is used to serialize data
 ]
 
 [tool.ruff.lint.pydocstyle]

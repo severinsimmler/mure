@@ -8,8 +8,8 @@ import chardet
 from aiohttp import ClientSession
 
 from mure.cache import Cache
-from mure.dtos import HistoricResponse, HTTPResource, Response
 from mure.logging import Logger
+from mure.models import Request, Response
 
 LOGGER = Logger(__name__)
 
@@ -19,7 +19,7 @@ class ResponseIterator(Iterator[Response]):
 
     def __init__(
         self,
-        resources: list[HTTPResource],
+        requests: list[Request],
         *,
         batch_size: int = 5,
         cache: Cache | None = None,
@@ -28,23 +28,23 @@ class ResponseIterator(Iterator[Response]):
 
         Parameters
         ----------
-        resources : list[HTTPResource]
+        requests : list[Request]
             Resources to request.
         batch_size : int, optional
             Number of resources to request concurrently, by default 5.
         cache : Cache | None, optional
             Cache to use for storing responses, by default None.
         """
-        self.resources = resources
-        self.num_resources = len(resources)
-        self.pending = len(resources)
+        self.requests = requests
+        self.num_requests = len(requests)
+        self.pending = len(requests)
         self.batch_size = batch_size
         self.cache = cache
 
         self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
         self._loop = asyncio.new_event_loop()
         self._queue = PriorityQueue()
-        self._events = [Event() for _ in resources]
+        self._events = [Event() for _ in requests]
         self._tasks: set[Task] = set()
         self._responses = self._fetch_responses()
         self._generator = None
@@ -55,9 +55,9 @@ class ResponseIterator(Iterator[Response]):
         Returns
         -------
         str
-            Representation with number of pending resources.
+            Representation with number of pending requests.
         """
-        return f"<ResponseIterator: {self.pending}/{self.num_resources} pending>"
+        return f"<ResponseIterator: {self.pending}/{self.num_requests} pending>"
 
     def __len__(self) -> int | float:
         """Return the number of pending responses.
@@ -149,42 +149,42 @@ class ResponseIterator(Iterator[Response]):
         Iterator[Task]
             Tasks to fetch resources.
         """
-        for i, (resource, event) in enumerate(zip(self.resources, self._events, strict=False)):
+        for i, (request, event) in enumerate(zip(self.requests, self._events, strict=False)):
             # create task in the background
-            yield self._loop.create_task(self._aprocess_resource(i, session, resource, event))
+            yield self._loop.create_task(self._aprocess_request(i, session, request, event))
 
-    async def _aprocess_resource(
+    async def _aprocess_request(
         self,
         priority: int,
         session: ClientSession,
-        resource: HTTPResource,
+        request: Request,
         event: Event,
     ):
-        """Process a resource by fetching and putting it in the queue.
+        """Process a request by fetching and putting it in the queue.
 
         Parameters
         ----------
         priority : int
-            Priority of the resource.
+            Priority of the request.
         session : ClientSession
             Client session to use.
-        resource : HTTPResource
+        request. : Request
             Resource to request.
         event : Event
             Event to set when the response is ready.
         """
         LOGGER.debug(f"Started {priority}")
 
-        # if cache is given and has the resource, use it
-        if self.cache and self.cache.has(resource):
+        # if cache is given and has the request., use it
+        if self.cache and self.cache.has(request):
             LOGGER.debug("Found response in cache")
-            response = self.cache.get(resource)
+            response = self.cache.get(request)
         else:
-            response = await self._afetch(session, resource)
+            response = await self._afetch(session, request)
 
             # save response to cache
             if self.cache:
-                self.cache.set(resource, response)
+                self.cache.set(request, response)
                 LOGGER.debug("Saved response to cache")
 
         # put response in the queue
@@ -232,7 +232,7 @@ class ResponseIterator(Iterator[Response]):
             self._process_batch(tasks)
 
             for event in self._events:
-                # wait for the specific event to be set to preserve order of the resources
+                # wait for the specific event to be set to preserve order of the requests
                 await event.wait()
 
                 # process next batch of tasks
@@ -252,14 +252,14 @@ class ResponseIterator(Iterator[Response]):
         finally:
             await session.close()
 
-    async def _afetch(self, session: ClientSession, resource: HTTPResource) -> Response:
+    async def _afetch(self, session: ClientSession, request: Request) -> Response:
         """Perform a HTTP request.
 
         Parameters
         ----------
         session : ClientSession
             Client session to use.
-        resource : Resource
+        request : Resource
             Resource to request.
 
         Returns
@@ -268,9 +268,15 @@ class ResponseIterator(Iterator[Response]):
             The server's response.
         """
         try:
-            kwargs = {k: v for k, v in resource.items() if k not in {"method", "url"}}
-
-            async with session.request(resource["method"], resource["url"], **kwargs) as response:
+            async with session.request(
+                request.method,
+                request.url,
+                headers=request.headers,
+                params=request.params,
+                data=request.data,
+                json=request.json,
+                timeout=request.timeout,
+            ) as response:
                 content = await response.read()
                 encoding = response.get_encoding()
 
@@ -290,18 +296,9 @@ class ResponseIterator(Iterator[Response]):
                     ok=response.ok,
                     text=text,
                     url=response.url.human_repr(),
-                    history=[
-                        HistoricResponse(
-                            status=h.status,
-                            reason=h.reason,
-                            ok=h.ok,
-                            url=h.url.human_repr(),
-                        )
-                        for h in response.history
-                    ],
                 )
         except Exception as error:
             if self._log_errors:
                 LOGGER.error(error)
 
-            return Response(status=0, reason=repr(error), ok=False, text="", url="", history=[])
+            return Response(status=0, reason=repr(error), ok=False, text="", url="")

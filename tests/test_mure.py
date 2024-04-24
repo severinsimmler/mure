@@ -4,7 +4,7 @@ import pytest
 
 import mure
 from mure.cache import InMemoryCache
-from mure.dtos import HTTPResource, Resource, Response
+from mure.models import HTTPResource, Resource, Response
 
 
 def test_get():

@@ -1,6 +1,6 @@
 import mure
-from mure.dtos import Resource
 from mure.iterator import LOGGER
+from mure.models import Resource
 
 LOGGER.set_level("DEBUG")
 
@@ -18,5 +18,5 @@ resources: list[Resource] = [
 ]
 
 
-for i, _ in enumerate(mure.get(resources, batch_size=5, log_errors=False)):
+for i, _ in enumerate(mure.get(resources, batch_size=5)):
     print(f"Received response {i}")
