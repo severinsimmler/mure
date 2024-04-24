@@ -235,6 +235,8 @@ class ResponseIterator(Iterator[Response]):
                 yield response
                 self._queue.task_done()
                 self.pending -= 1
+        except GeneratorExit:
+            return
         finally:
             await session.close()
 
