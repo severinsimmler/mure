@@ -220,7 +220,7 @@ class ResponseIterator(Iterator[Response]):
                 self._process_batch(tasks)
 
                 # get response from the queue
-                i, response = await self._queue.get()
+                _, response = await self._queue.get()
 
                 # process next batch of tasks
                 self._process_batch(tasks)
