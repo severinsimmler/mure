@@ -55,6 +55,10 @@ class Request:
         self.json = json
         self.timeout = timeout
 
+    def __repr__(self) -> str:
+        """Return the string representation of the request."""
+        return f"<Request({self.method}, {self.url})>"
+
     def __hash__(self) -> int:
         """Hash the request."""
         return hash(
@@ -82,13 +86,22 @@ class Request:
         bool
             True if the requests are equal; otherwise, False.
         """
-        return (
-            isinstance(other, Request)
-            and self.method == other.method
-            and self.url == other.url
-            and self.params == other.params
-            and self.data == other.data
-        )
+        return self.__hash__() == other.__hash__()
+
+    def encode(self, encoding: str = "utf-8") -> bytes:
+        """Encode the request.
+
+        Parameters
+        ----------
+        encoding : str, optional
+            Encoding to use, by default "utf-8".
+
+        Returns
+        -------
+        bytes
+            Encoded request.
+        """
+        return str(self.__hash__()).encode(encoding)
 
 
 class Response:
@@ -122,3 +135,17 @@ class Response:
         self.reason = reason
         self.url = url
         self.text = text
+
+    def __repr__(self) -> str:
+        """Return the string representation of the response."""
+        return f"<Response({self.status}, {self.reason})>"
+
+    def json(self) -> Any:
+        """Parse the response body as JSON.
+
+        Returns
+        -------
+        Any
+            Parsed JSON response body.
+        """
+        return json.loads(self.text)

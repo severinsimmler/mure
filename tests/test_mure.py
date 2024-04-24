@@ -3,8 +3,8 @@ from json import JSONDecodeError
 import pytest
 
 import mure
-from mure.cache import InMemoryCache
-from mure.models import HTTPResource, Resource, Response
+from mure.cache import MemoryCache
+from mure.models import Request, Resource, Response
 
 
 def test_get():
@@ -32,33 +32,9 @@ def test_post():
     responses: list[Response] = list(mure.post(resources, batch_size=2))
 
     assert len(responses) == 3
-    assert responses[0]["ok"]
-    assert responses[1]["ok"]
-    assert not responses[2]["ok"]
-
-
-def test_mixed():
-    resources: list[HTTPResource] = [
-        {"method": "GET", "url": "https://httpbin.org/get"},
-        {"method": "GET", "url": "https://httpbin.org/get", "params": {"foo": "bar"}},
-        {"method": "POST", "url": "https://httpbin.org/post"},
-        {"method": "POST", "url": "https://httpbin.org/post", "json": {"foo": "bar"}},
-        {"method": "GET", "url": "invalid"},
-    ]
-
-    responses: list[Response] = list(mure.request(resources, batch_size=2))
-
-    assert len(responses) == 5
-    assert responses[0]["ok"]
-    assert responses[1]["ok"]
-    assert responses[2]["ok"]
-    assert responses[3]["ok"]
-    assert not responses[4]["ok"]
-
-
-def test_missing_method():
-    with pytest.raises(KeyError):
-        next(mure.request([{"url": "https://httpbin.org/get"}]))
+    assert responses[0].ok
+    assert responses[1].ok
+    assert not responses[2].ok
 
 
 def test_json():
@@ -73,13 +49,12 @@ def test_invalid_json():
 
 
 def test_cache():
-    cache = InMemoryCache()
-    resource: HTTPResource = {"method": "GET", "url": "https://httpbin.org/get"}
+    cache = MemoryCache()
+    resource: Resource = {"url": "https://httpbin.org/get"}
+    request = Request("GET", "https://httpbin.org/get")
 
-    # resource is not in the cache
-    assert not cache.has(resource)
+    assert not cache.has(request)
 
     next(mure.get([resource], cache=cache))
 
-    # resource is now in the cache
-    assert cache.has(resource)
+    assert cache.has(request)

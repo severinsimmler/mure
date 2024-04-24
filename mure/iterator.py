@@ -222,9 +222,10 @@ class ResponseIterator(Iterator[Response]):
         Response
             The server's response.
         """
-        session = ClientSession()
-
         try:
+            # one session for all requests
+            session = ClientSession(loop=self._loop)
+
             # create tasks (lazy)
             tasks = self._create_tasks(session)
 
