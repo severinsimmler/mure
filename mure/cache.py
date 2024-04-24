@@ -1,7 +1,6 @@
 import json
-import sqlite3
+import shelve
 from abc import ABC, abstractmethod
-from os import PathLike
 from pathlib import Path
 
 from mure.dtos import HTTPResource, Response
@@ -27,12 +26,12 @@ class Cache(ABC):
 
     @abstractmethod
     def get(self, resource: HTTPResource) -> Response | None:
-        """Get a resource from the cache.
+        """Get the response for the specified resource from the cache.
 
         Parameters
         ----------
         resource : HTTPResource
-            Resource to get from the cache.
+            Resource to get response from the cache.
 
         Returns
         -------
@@ -42,7 +41,7 @@ class Cache(ABC):
 
     @abstractmethod
     def save(self, resource: HTTPResource, response: Response):
-        """Save a resource to the cache.
+        """Save a resource and its response to the cache.
 
         Parameters
         ----------
@@ -65,6 +64,7 @@ class Cache(ABC):
         str
             JSON representation of the resource.
         """
+        # TODO improve this
         return json.dumps(
             {
                 "method": resource["method"],
@@ -80,7 +80,7 @@ class Cache(ABC):
 
 
 class InMemoryCache(Cache):
-    """Simple in-memory cache implementation."""
+    """Simple in-memory cache."""
 
     def __init__(self):
         self._cache = {}
@@ -101,12 +101,12 @@ class InMemoryCache(Cache):
         return self.identify_resource(resource) in self._cache
 
     def get(self, resource: HTTPResource) -> Response | None:
-        """Get a resource from the cache.
+        """Get the response for the specified resource from the cache.
 
         Parameters
         ----------
         resource : HTTPResource
-            Resource to get from the cache.
+            Resource to get response from the cache.
 
         Returns
         -------
@@ -116,82 +116,23 @@ class InMemoryCache(Cache):
         return self._cache.get(self.identify_resource(resource))
 
     def save(self, resource: HTTPResource, response: Response):
-        """Save a resource to the cache.
+        """Save a resource and its response to the cache.
 
         Parameters
         ----------
         resource : HTTPResource
             Resource to save to the cache.
+        response : Response
+            Response to save to the cache.
         """
         self._cache[self.identify_resource(resource)] = response
 
 
-class SQLiteCache(Cache):
-    """SQLite cache implementation."""
+class ShelveCache(InMemoryCache):
+    """Shelve cache."""
 
-    def __init__(self, path: PathLike = Path("mure-cache.db")):
+    def __init__(self, path: Path = Path("mure-cache.shelve")):
+        super().__init__()
+
         self.path = path
-        self.db = sqlite3.connect(self.path)
-
-        self.db.execute(
-            """
-                CREATE TABLE IF NOT EXISTS cache (
-                    resource TEXT PRIMARY KEY,
-                    response TEXT NOT NULL
-                )
-                """
-        )
-
-    def has(self, resource: HTTPResource) -> bool:
-        """Check if a resource is in the cache.
-
-        Parameters
-        ----------
-        resource : HTTPResource
-            Resource to check if it's in the cache.
-
-        Returns
-        -------
-        bool
-            True if the resource is in the cache; otherwise, False.
-        """
-        cursor = self.db.cursor()
-        cursor.execute(
-            "SELECT 1 FROM cache WHERE resource = ?;",
-            (self.identify_resource(resource),),
-        )
-        return cursor.fetchone() is not None
-
-    def get(self, resource: HTTPResource) -> Response | None:
-        """Get a resource from the cache.
-
-        Parameters
-        ----------
-        resource : HTTPResource
-            Resource to get from the cache.
-
-        Returns
-        -------
-        Response | None
-            Response from the cache or None if the resource is not in the cache.
-        """
-        cursor = self.db.cursor()
-        cursor.execute(
-            "SELECT response FROM cache WHERE resource = ?;",
-            (self.identify_resource(resource),),
-        )
-        row = cursor.fetchone()
-        return Response(**json.loads(row[0])) if row else None
-
-    def save(self, resource: HTTPResource, response: Response):
-        """Save a resource to the cache.
-
-        Parameters
-        ----------
-        resource : HTTPResource
-            Resource to save to the cache.
-        """
-        self.db.execute(
-            "INSERT OR REPLACE INTO cache (resource, response) VALUES (?, ?);",
-            (self.identify_resource(resource), json.dumps(response.__dict__)),
-        )
+        self._cache = shelve.open(str(self.path.resolve()))

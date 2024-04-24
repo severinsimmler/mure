@@ -4,7 +4,7 @@
 [![downloads/month](https://static.pepy.tech/personalized-badge/mure?period=month&units=abbreviation&left_color=black&right_color=black&left_text=downloads/month)](https://pepy.tech/project/mure)
 [![downloads/week](https://static.pepy.tech/personalized-badge/mure?period=week&units=abbreviation&left_color=black&right_color=black&left_text=downloads/week)](https://pepy.tech/project/mure)
 
-This is a thin layer on top of [`aiohttp`](https://docs.aiohttp.org/en/stable/) to perform multiple HTTP requests in parallel – without writing boilerplate code or worrying about `async` functions.
+This is a thin layer on top of [`aiohttp`](https://docs.aiohttp.org/en/stable/) to perform multiple HTTP requests concurrently – without worrying about `async` functions.
 
 `mure` means **mu**ltiple **re**quests, but is also the German term for a form of mass wasting involving fast-moving flow of debris and dirt that has become liquified by the addition of water.
 
@@ -45,7 +45,7 @@ Pass a list of dictionaries with at least a value for `url` and get a `ResponseI
 <ResponseIterator: 0/3 pending>
 ```
 
-The keyword argument `batch_size` defines the number of requests to perform in parallel (don't be too greedy). The resources are requested batch-wise, i. e. only one batch of responses is kept in memory (depends of course also on how you use the `ResponseIterator`). Once you start accessing the first response of a batch, the next batch of resources is requested already in the background. So while you are doing something with a batch of responses (e.g. some CPU-heavy operation like parsing HTML), the next batch is already requested in the background.
+The keyword argument `batch_size` defines the number of requests to perform concurrently (don't be too greedy). The resources are requested batch-wise, i. e. only one batch of responses is kept in memory (depends of course also on how you use the `ResponseIterator`). Once you start accessing the first response of a batch, the next batch of resources is requested already in the background. So while you are doing something with a batch of responses (e.g. some CPU-heavy operation like parsing HTML), the next batch is already requested in the background.
 
 For example, if you have four resources, set `batch_size` to `2` and execute:
 
@@ -53,7 +53,7 @@ For example, if you have four resources, set `batch_size` to `2` and execute:
 >>> next(responses)
 ```
 
-the first two resources are requested in parallel and blocks until both of the responses are available (i.e. if resource 1 takes 1 second and resource 2 takes 10 seconds, it blocks 10 seconds although resource 1 is already available after 1 second). Before the response of resource 1 is yielded, the next batch of resources (i.e. 3 and 4) is already requested in the background.
+the first two resources are requested concurrently and blocks until both of the responses are available (i.e. if resource 1 takes 1 second and resource 2 takes 10 seconds, it blocks 10 seconds although resource 1 is already available after 1 second). Before the response of resource 1 is yielded, the next batch of resources (i.e. 3 and 4) is already requested in the background.
 
 Executing `next()` a second time:
 

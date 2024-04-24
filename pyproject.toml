@@ -1,7 +1,7 @@
 [project]
 name = "mure"
 version = "1.0.0a5"
-description = "Perform multiple HTTP requests in parallel – without writing boilerplate code or worrying about async functions."
+description = "Perform multiple HTTP requests concurrently – without worrying about async functions."
 authors = [{ name = "Severin Simmler", email = "s.simmler@snapaddy.com" }]
 dependencies = ["aiohttp>=3.9.3", "chardet>=5.2.0"]
 readme = "README.md"
@@ -87,6 +87,7 @@ ignore = [
     "S105",   # Possible hardcoded password
     "S320",   # Using lxml to parse untrusted data
     "S311",   # Standard pseudo-random generators are not suitable for cryptographic purposes
+    "S301",   # Use of `pickle` and modules that wrap it
 ]
 
 [tool.ruff.lint.pydocstyle]
