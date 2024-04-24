@@ -2,7 +2,10 @@ import shelve
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+from mure.logging import Logger
 from mure.models import Request, Response
+
+LOGGER = Logger(__name__)
 
 
 class Cache(ABC):
@@ -106,8 +109,11 @@ class DiskCache(MemoryCache):
     def __init__(self, path: Path = Path("mure-cache.shelve")):
         super().__init__()
 
-        self.path = path
-        self._cache = shelve.open(str(self.path.resolve()))
+        self.path = path.resolve()
+        self._cache = shelve.open(str(self.path))
+
+        if self.path.exists():
+            LOGGER.warning(f"Cache ({self.path}) already exists")
 
     def __del__(self):
         """Close the cache."""
