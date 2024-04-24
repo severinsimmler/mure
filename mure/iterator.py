@@ -1,4 +1,5 @@
 import asyncio
+import os
 from asyncio import Event, PriorityQueue, Task
 from collections.abc import AsyncGenerator, Iterator
 from typing import Self
@@ -20,7 +21,6 @@ class ResponseIterator(Iterator[Response]):
         resources: list[HTTPResource],
         *,
         batch_size: int = 5,
-        log_errors: bool = True,
     ):
         """Initialize a response iterator.
 
@@ -30,15 +30,13 @@ class ResponseIterator(Iterator[Response]):
             Resources to request.
         batch_size : int, optional
             Number of resources to request concurrently, by default 5.
-        log_errors : bool, optional
-            True if Python errors should be logged, by default True.
         """
         self.resources = resources
         self.num_resources = len(resources)
         self.pending = len(resources)
         self.batch_size = batch_size
 
-        self._log_errors = log_errors
+        self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
         self._loop = asyncio.new_event_loop()
         self._queue = PriorityQueue()
         self._events = [Event() for _ in resources]

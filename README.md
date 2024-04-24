@@ -97,11 +97,15 @@ You can even mix HTTP methods in the list of resources (but have to specify the 
 
 ### Verbosity
 
-Control verbosity with the `log_errors` argument:
+Control verbosity with the `MURE_LOG_ERRORS` environment variable:
 
 ```python
+>>> import os
 >>> import mure
->>> next(mure.get([{"url": "invalid"}], log_errors=True))
+>>> next(mure.get([{"url": "invalid"}]))
+Response(status=0, reason='<InvalidURL invalid>', ok=False, text='')
+>>> os.environ["MURE_LOG_ERRORS"] = "true"
+>>> next(mure.get([{"url": "invalid"}]))
 invalid
 Traceback (most recent call last):
   File "/home/severin/git/mure/mure/iterator.py", line 131, in _process
@@ -117,7 +121,5 @@ Traceback (most recent call last):
   File "/home/severin/git/mure/.env/lib/python3.11/site-packages/aiohttp/client_reqrep.py", line 364, in update_host
     raise InvalidURL(url)
 aiohttp.client_exceptions.InvalidURL: invalid
-Response(status=0, reason='<InvalidURL invalid>', ok=False, text='')
->>> next(mure.get([{"url": "invalid"}], log_errors=False))
 Response(status=0, reason='<InvalidURL invalid>', ok=False, text='')
 ```
