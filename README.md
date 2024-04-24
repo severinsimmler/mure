@@ -4,7 +4,7 @@
 [![downloads/month](https://static.pepy.tech/personalized-badge/mure?period=month&units=abbreviation&left_color=black&right_color=black&left_text=downloads/month)](https://pepy.tech/project/mure)
 [![downloads/week](https://static.pepy.tech/personalized-badge/mure?period=week&units=abbreviation&left_color=black&right_color=black&left_text=downloads/week)](https://pepy.tech/project/mure)
 
-This is a thin layer on top of [`aiohttp`](https://docs.aiohttp.org/en/stable/) to perform multiple HTTP requests concurrently – without worrying about `async` functions.
+This is a thin layer on top of [`aiohttp`](https://docs.aiohttp.org/en/stable/) to perform multiple HTTP requests concurrently – without worrying about async/await.
 
 `mure` means **mu**ltiple **re**quests, but is also the German term for a form of mass wasting involving fast-moving flow of debris and dirt that has become liquified by the addition of water.
 
@@ -26,7 +26,7 @@ Pass a list of dictionaries with at least a value for `url` and get a `ResponseI
 
 ```python
 >>> import mure
->>> from mure.dtos import Resource
+>>> from mure.models import Resource
 >>> resources: list[Resource] = [
 ...     {"url": "https://httpbin.org/get"},
 ...     {"url": "https://httpbin.org/get", "params": {"foo": "bar"}},
@@ -45,7 +45,7 @@ Pass a list of dictionaries with at least a value for `url` and get a `ResponseI
 <ResponseIterator: 0/3 pending>
 ```
 
-The keyword argument `batch_size` defines the number of requests to perform concurrently (don't be too greedy). The resources are requested batch-wise, i. e. only one batch of responses is kept in memory (depends of course also on how you use the `ResponseIterator`). Once you start accessing the first response of a batch, the next batch of resources is requested already in the background. So while you are doing something with a batch of responses (e.g. some CPU-heavy operation like parsing HTML), the next batch is already requested in the background.
+The keyword argument `batch_size` defines the number of requests to perform concurrently. The resources are requested lazy and in batches, i.e. only one batch of responses is kept in memory. Once you start accessing the first response of a batch, the next resource is requested already in the background.
 
 For example, if you have four resources, set `batch_size` to `2` and execute:
 
@@ -53,7 +53,7 @@ For example, if you have four resources, set `batch_size` to `2` and execute:
 >>> next(responses)
 ```
 
-the first two resources are requested concurrently and blocks until both of the responses are available (i.e. if resource 1 takes 1 second and resource 2 takes 10 seconds, it blocks 10 seconds although resource 1 is already available after 1 second). Before the response of resource 1 is yielded, the next batch of resources (i.e. 3 and 4) is already requested in the background.
+the first two resources are requested concurrently and block until both of the responses are available (i.e. if resource 1 takes 1 second and resource 2 takes 10 seconds, it blocks 10 seconds although resource 1 is already available after 1 second). Before the response of resource 1 is yielded, the next batch of resources (i.e. 3 and 4) is already requested in the background.
 
 Executing `next()` a second time:
 
@@ -61,7 +61,7 @@ Executing `next()` a second time:
 >>> next(responses)
 ```
 
-will be super fast, because the response of resource 2 is already available (1 and 2 were in the same batch). If you are lucky, executing `next()` a third time will be fast as well, because the next batch of resources was already requested when you executed `next(responses)` the first time.
+will be super fast, because the response of resource 2 is already available (1 and 2 were in the same batch).
 
 ### HTTP Methods
 
@@ -75,25 +75,6 @@ There are convenience functions for GET, POST, HEAD, PUT, PATCH and DELETE reque
 ... ]
 >>> responses = mure.post(resources)
 ```
-
-You can even mix HTTP methods in the list of resources (but have to specify the method for each resource):
-
-```python
->>> resources = [
-...     {"method": "GET", "url": "https://httpbin.org/get"},
-...     {"method": "GET", "url": "https://httpbin.org/get", "params": {"foo": "bar"}},
-...     {"method": "POST", "url": "https://httpbin.org/post"},
-...     {"method": "POST", "url": "https://httpbin.org/post", "json": {"foo": "bar"}},
-...     {"method": "GET", "url": "invalid"},
-... ]
->>> responses = mure.request(resources)
-```
-
-## Tips
-
-- Set timeouts (e.g. 10 seconds) to avoid waiting for too long.
-- It might be a good idea to order the URLs to be requested by domain names so that DNS resolution is done once per domain. Once a domain's IP has been resolved, subsequent requests to the same domain can benefit from cached DNS resolutions. Also when using protocols like HTTP/1.1, connections to the same domain can be reused. Batching requests by domain can allow for connection reuse.
-- Shuffling URLs randomly might be an alternative if you do not request the same domain multiple times. This helps in distributing potential slow URLs across different batches.
 
 ### Verbosity
 
