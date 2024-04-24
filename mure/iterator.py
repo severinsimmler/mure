@@ -98,10 +98,15 @@ class ResponseIterator(Iterator[Response]):
         if self._generator:
             self._loop.run_until_complete(self._generator.aclose())
 
-        if self._tasks:
-            for task in self._tasks:
+        # cancel pending tasks (if any)
+        if tasks := {
+            task
+            for task in self._tasks | asyncio.all_tasks(self._loop)
+            if not task.done() or task.cancelled()
+        }:
+            for task in tasks:
                 task.cancel()
-            self._loop.run_until_complete(asyncio.gather(*self._tasks, return_exceptions=True))
+            self._loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
 
         if not self._loop.is_closed():
             self._loop.close()
