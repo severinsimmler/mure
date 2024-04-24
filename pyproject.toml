@@ -1,6 +1,6 @@
 [project]
 name = "mure"
-version = "1.0.0a3"
+version = "1.0.0a4"
 description = "Perform multiple HTTP requests in parallel – without writing boilerplate code or worrying about async functions."
 authors = [{ name = "Severin Simmler", email = "s.simmler@snapaddy.com" }]
 dependencies = ["aiohttp>=3.9.3", "chardet>=5.2.0"]
