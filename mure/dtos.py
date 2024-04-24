@@ -64,7 +64,7 @@ class HistoricResponse:
     ----------
     status : int
         HTTP status code of response, e.g. 200.
-    reason : str
+    reason : str | None
         HTTP status reason of response, e.g. "OK".
     ok : bool
         Boolean representation of HTTP status code. True if status is <400; otherwise, False.
@@ -73,7 +73,7 @@ class HistoricResponse:
     """
 
     status: int
-    reason: str
+    reason: str | None
     ok: bool
     url: str
 
@@ -86,7 +86,7 @@ class Response:
     ----------
     status : int
         HTTP status code of response, e.g. 200.
-    reason : str
+    reason : str | None
         HTTP status reason of response, e.g. "OK".
     ok : bool
         Boolean representation of HTTP status code. True if status is <400; otherwise, False.
@@ -99,7 +99,7 @@ class Response:
     """
 
     status: int
-    reason: str
+    reason: str | None
     ok: bool
     text: str
     url: str

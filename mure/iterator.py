@@ -7,6 +7,7 @@ from typing import Self
 import chardet
 from aiohttp import ClientSession
 
+from mure.cache import Cache
 from mure.dtos import HistoricResponse, HTTPResource, Response
 from mure.logging import Logger
 
@@ -21,6 +22,7 @@ class ResponseIterator(Iterator[Response]):
         resources: list[HTTPResource],
         *,
         batch_size: int = 5,
+        cache: Cache | None = None,
     ):
         """Initialize a response iterator.
 
@@ -30,11 +32,14 @@ class ResponseIterator(Iterator[Response]):
             Resources to request.
         batch_size : int, optional
             Number of resources to request concurrently, by default 5.
+        cache : Cache | None, optional
+            Cache to use for storing responses, by default None.
         """
         self.resources = resources
         self.num_resources = len(resources)
         self.pending = len(resources)
         self.batch_size = batch_size
+        self.cache = cache
 
         self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
         self._loop = asyncio.new_event_loop()
@@ -170,8 +175,15 @@ class ResponseIterator(Iterator[Response]):
         """
         LOGGER.debug(f"Started {priority}")
 
-        # fetch response
-        response = await self._afetch(session, resource)
+        # if cache is given and has the resource, use it
+        if self.cache and self.cache.has(resource):
+            response = self.cache.get(resource)
+        else:
+            response = await self._afetch(session, resource)
+
+            # save response to cache
+            if self.cache:
+                self.cache.save(resource, response)
 
         # put response in the queue
         await self._queue.put((priority, response))
@@ -268,7 +280,7 @@ class ResponseIterator(Iterator[Response]):
                     #
                     # TypeError can be raised if encoding is None
                     encoding = chardet.detect(content)["encoding"]
-                    text = content.decode(encoding, errors="replace")
+                    text = content.decode(encoding or "utf-8", errors="replace")
 
                 return Response(
                     status=response.status,

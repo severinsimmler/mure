@@ -1,8 +1,10 @@
 from json import JSONDecodeError
+from unittest.mock import patch
 
 import pytest
 
 import mure
+from mure.cache import InMemoryCache
 from mure.dtos import HTTPResource, Resource, Response
 
 
@@ -69,3 +71,30 @@ def test_json():
 def test_invalid_json():
     with pytest.raises(JSONDecodeError):
         next(mure.get([{"url": "https://wikipedia.org"}])).json()
+
+
+def test_cache(monkeypatch: pytest.MonkeyPatch):
+    cache = InMemoryCache()
+    resource: HTTPResource = {"method": "GET", "url": "https://httpbin.org/get"}
+
+    # resource is not in the cache
+    assert not cache.has(resource)
+
+    with (
+        patch("mure.iterator.ResponseIterator.cache.get") as get,
+        patch("mure.iterator.ResponseIterator.cache.save") as save,
+    ):
+        next(mure.get([resource], cache=cache))
+        get.assert_called_once()
+        save.assert_called_once()
+
+    # resource is now in the cache
+    assert cache.has(resource)
+
+    with (
+        patch("mure.iterator.ResponseIterator.cache.get") as get,
+        patch("mure.iterator.ResponseIterator.cache.save") as save,
+    ):
+        next(mure.get([resource], cache=cache))
+        get.assert_called_once()
+        save.assert_not_called()

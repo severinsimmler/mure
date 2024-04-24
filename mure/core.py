@@ -1,8 +1,14 @@
+from mure.cache import Cache
 from mure.dtos import DELETE, GET, HEAD, PATCH, POST, PUT, HTTPMethod, HTTPResource, Resource
 from mure.iterator import ResponseIterator
 
 
-def request(resources: list[HTTPResource], *, batch_size: int = 5) -> ResponseIterator:
+def request(
+    resources: list[HTTPResource],
+    *,
+    batch_size: int = 5,
+    cache: Cache | None = None,
+) -> ResponseIterator:
     """Perform HTTP request for each resource in the given batch.
 
     Parameters
@@ -10,7 +16,9 @@ def request(resources: list[HTTPResource], *, batch_size: int = 5) -> ResponseIt
     resources : list[HTTPResource]
         Resources to request.
     batch_size : int
-        Number of resources to request in parallel, by default 5.
+        Number of resources to request concurrently, by default 5.
+    cache : Cache | None, optional
+        Cache to use for storing responses, by default None.
 
     Returns
     -------
@@ -26,10 +34,15 @@ def request(resources: list[HTTPResource], *, batch_size: int = 5) -> ResponseIt
     if any("url" not in resource for resource in resources):
         raise KeyError("Missing URL in resource")
 
-    return ResponseIterator(resources, batch_size=batch_size)
+    return ResponseIterator(resources, batch_size=batch_size, cache=cache)
 
 
-def get(resources: list[Resource], *, batch_size: int = 5) -> ResponseIterator:
+def get(
+    resources: list[Resource],
+    *,
+    batch_size: int = 5,
+    cache: Cache | None = None,
+) -> ResponseIterator:
     """Perform a GET request for each resource.
 
     Parameters
@@ -37,17 +50,24 @@ def get(resources: list[Resource], *, batch_size: int = 5) -> ResponseIterator:
     resources : list[Resource]
         Resources to request.
     batch_size : int
-        Number of resources to request in parallel, by default 5.
+        Number of items to request per batch concurrently, by default 5.
+    cache : Cache | None, optional
+        Cache to use for storing responses, by default None.
 
     Returns
     -------
     ResponseIterator
         The server's responses for each resource.
     """
-    return _request(GET, resources, batch_size=batch_size)
+    return _request(GET, resources, batch_size=batch_size, cache=cache)
 
 
-def post(resources: list[Resource], *, batch_size: int = 5) -> ResponseIterator:
+def post(
+    resources: list[Resource],
+    *,
+    batch_size: int = 5,
+    cache: Cache | None = None,
+) -> ResponseIterator:
     """Perform a POST request for each resource.
 
     Parameters
@@ -55,17 +75,24 @@ def post(resources: list[Resource], *, batch_size: int = 5) -> ResponseIterator:
     resources : list[Resource]
         Resources to request.
     batch_size : int
-        Number of items to request per batch in parallel, by default 5.
+        Number of items to request per batch concurrently, by default 5.
+    cache : Cache | None, optional
+        Cache to use for storing responses, by default None.
 
     Returns
     -------
     ResponseIterator
         The server's responses for each resource.
     """
-    return _request(POST, resources, batch_size=batch_size)
+    return _request(POST, resources, batch_size=batch_size, cache=cache)
 
 
-def put(resources: list[Resource], *, batch_size: int = 5) -> ResponseIterator:
+def put(
+    resources: list[Resource],
+    *,
+    batch_size: int = 5,
+    cache: Cache | None = None,
+) -> ResponseIterator:
     """Perform a PUT request for each resource.
 
     Parameters
@@ -73,17 +100,24 @@ def put(resources: list[Resource], *, batch_size: int = 5) -> ResponseIterator:
     resources : list[Resource]
         Resources to request.
     batch_size : int
-        Number of items to request per batch in parallel, by default 5.
+        Number of items to request per batch concurrently, by default 5.
+    cache : Cache | None, optional
+        Cache to use for storing responses, by default None.
 
     Returns
     -------
     ResponseIterator
         The server's responses for each resource.
     """
-    return _request(PUT, resources, batch_size=batch_size)
+    return _request(PUT, resources, batch_size=batch_size, cache=cache)
 
 
-def patch(resources: list[Resource], *, batch_size: int = 5) -> ResponseIterator:
+def patch(
+    resources: list[Resource],
+    *,
+    batch_size: int = 5,
+    cache: Cache | None = None,
+) -> ResponseIterator:
     """Perform a PATCH request for each resource.
 
     Parameters
@@ -91,17 +125,24 @@ def patch(resources: list[Resource], *, batch_size: int = 5) -> ResponseIterator
     resources : list[Resource]
         Resources to request.
     batch_size : int
-        Number of items to request per batch in parallel, by default 5.
+        Number of items to request per batch concurrently, by default 5.
+    cache : Cache | None, optional
+        Cache to use for storing responses, by default None.
 
     Returns
     -------
     ResponseIterator
         The server's responses for each resource.
     """
-    return _request(PATCH, resources, batch_size=batch_size)
+    return _request(PATCH, resources, batch_size=batch_size, cache=cache)
 
 
-def delete(resources: list[Resource], *, batch_size: int = 5) -> ResponseIterator:
+def delete(
+    resources: list[Resource],
+    *,
+    batch_size: int = 5,
+    cache: Cache | None = None,
+) -> ResponseIterator:
     """Perform a DELETE request for each resource.
 
     Parameters
@@ -109,17 +150,24 @@ def delete(resources: list[Resource], *, batch_size: int = 5) -> ResponseIterato
     resources : list[Resource]
         Resources to request.
     batch_size : int
-        Number of items to request per batch in parallel, by default 5.
+        Number of items to request per batch concurrently, by default 5.
+    cache : Cache | None, optional
+        Cache to use for storing responses, by default None.
 
     Returns
     -------
     ResponseIterator
         The server's responses for each resource.
     """
-    return _request(DELETE, resources, batch_size=batch_size)
+    return _request(DELETE, resources, batch_size=batch_size, cache=cache)
 
 
-def head(resources: list[Resource], *, batch_size: int = 5) -> ResponseIterator:
+def head(
+    resources: list[Resource],
+    *,
+    batch_size: int = 5,
+    cache: Cache | None = None,
+) -> ResponseIterator:
     """Perform a HEAD request for each resource.
 
     Parameters
@@ -127,14 +175,16 @@ def head(resources: list[Resource], *, batch_size: int = 5) -> ResponseIterator:
     resources : list[Resource]
         Resources to request.
     batch_size : int
-        Number of items to request per batch in parallel, by default 5.
+        Number of items to request per batch concurrently, by default 5.
+    cache : Cache | None, optional
+        Cache to use for storing responses, by default None.
 
     Returns
     -------
     ResponseIterator
         The server's responses for each resource.
     """
-    return _request(HEAD, resources, batch_size=batch_size)
+    return _request(HEAD, resources, batch_size=batch_size, cache=cache)
 
 
 def _request(
@@ -142,6 +192,7 @@ def _request(
     resources: list[Resource],
     *,
     batch_size: int = 5,
+    cache: Cache | None = None,
 ) -> ResponseIterator:
     """Perform a HTTP request using the specified method for each resource.
 
@@ -152,7 +203,9 @@ def _request(
     resources : list[HTTPResource]
         Resources to request.
     batch_size : int
-        Number of resources to request in parallel, by default 5.
+        Number of resources to request concurrently, by default 5.
+    cache : Cache | None, optional
+        Cache to use for storing responses, by default None.
 
     Returns
     -------
@@ -162,4 +215,5 @@ def _request(
     return request(
         [{**resource, "method": method} for resource in resources],
         batch_size=batch_size,
+        cache=cache,
     )
