@@ -2,6 +2,7 @@ import json
 import sqlite3
 from abc import ABC, abstractmethod
 from os import PathLike
+from pathlib import Path
 
 from mure.dtos import HTTPResource, Response
 
@@ -128,7 +129,7 @@ class InMemoryCache(Cache):
 class SQLiteCache(Cache):
     """SQLite cache implementation."""
 
-    def __init__(self, path: PathLike):
+    def __init__(self, path: PathLike = Path("mure-cache.db")):
         self.path = path
         self.db = sqlite3.connect(self.path)
 

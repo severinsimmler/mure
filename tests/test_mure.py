@@ -73,7 +73,7 @@ def test_invalid_json():
         next(mure.get([{"url": "https://wikipedia.org"}])).json()
 
 
-def test_cache(monkeypatch: pytest.MonkeyPatch):
+def test_cache():
     cache = InMemoryCache()
     resource: HTTPResource = {"method": "GET", "url": "https://httpbin.org/get"}
 
