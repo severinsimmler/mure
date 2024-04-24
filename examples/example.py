@@ -1,8 +1,11 @@
 import mure
+from mure.cache import MemoryCache
 from mure.iterator import LOGGER
 from mure.models import Resource
 
 LOGGER.set_level("DEBUG")
+
+cache = MemoryCache()
 
 resources: list[Resource] = [
     {"url": "https://google.com"},
@@ -18,5 +21,9 @@ resources: list[Resource] = [
 ]
 
 
-for i, _ in enumerate(mure.get(resources, batch_size=5)):
+for i, _ in enumerate(mure.get(resources, batch_size=5, cache=cache)):
+    print(f"Received response {i}")
+
+# super fast, because responses are cached
+for i, _ in enumerate(mure.get(resources, batch_size=5, cache=cache)):
     print(f"Received response {i}")

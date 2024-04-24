@@ -104,3 +104,20 @@ Traceback (most recent call last):
 aiohttp.client_exceptions.InvalidURL: invalid
 Response(status=0, reason='<InvalidURL invalid>', ok=False, text='')
 ```
+
+### Caching
+
+You can cache responses either in-memory (`MemoryCache`) or on your disk (`DiskCache`) to avoid requesting the same resources over and over again:
+
+```python
+>>> import mure
+>>> from mure.cache import DiskCache
+>>> cache = DiskCache()
+>>> resources = [
+...     {"url": "https://httpbin.org/post"},
+...     {"url": "https://httpbin.org/post", "json": {"foo": "bar"}},
+... ]
+>>> responses = mure.post(resources, cache=cache)
+```
+
+`MemoryCache` holds requests and corresponding responses in a simple dictionary in memory, `DiskCache` is serializing to disk using Python's `shelve` module from the standard library.
