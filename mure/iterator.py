@@ -210,7 +210,9 @@ class ResponseIterator(Iterator[Response]):
         Response
             The server's response.
         """
-        async with ClientSession() as session:
+        session = ClientSession()
+
+        try:
             # create tasks (lazy)
             tasks = self._create_tasks(session)
 
@@ -233,6 +235,8 @@ class ResponseIterator(Iterator[Response]):
                 yield response
                 self._queue.task_done()
                 self.pending -= 1
+        finally:
+            await session.close()
 
     async def _afetch(self, session: ClientSession, resource: HTTPResource) -> Response:
         """Perform a HTTP request.
