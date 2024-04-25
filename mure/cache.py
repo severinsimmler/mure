@@ -73,7 +73,7 @@ class MemoryCache(Cache):
         bool
             True if the request is in the cache; otherwise, False.
         """
-        return request in self._cache
+        return request.id in self._cache
 
     def get(self, request: Request) -> Response | None:
         """Get the response for the specified request from the cache.
@@ -88,7 +88,7 @@ class MemoryCache(Cache):
         Response | None
             Response from the cache or None if the request is not in the cache.
         """
-        return self._cache.get(request)
+        return self._cache.get(request.id)
 
     def set(self, request: Request, response: Response):
         """Save a request and its response to the cache.
@@ -100,7 +100,7 @@ class MemoryCache(Cache):
         response : Response
             Response to save to the cache.
         """
-        self._cache[request] = response
+        self._cache[request.id] = response
 
 
 class DiskCache(Cache):
