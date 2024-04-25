@@ -108,10 +108,10 @@ class DiskCache(Cache):
 
     def __init__(self, path: Path = Path("mure-cache.shelve")):
         self.path = path.resolve()
-        self._cache = shelve.open(str(self.path))
-
         if self.path.exists():
             LOGGER.warning(f"Cache ({self.path}) already exists")
+
+        self._cache = shelve.open(str(self.path))
 
     def __del__(self):
         """Close the cache."""
