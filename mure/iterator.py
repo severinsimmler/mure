@@ -43,7 +43,6 @@ class ResponseIterator(Iterator[Response]):
 
         self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
         self._loop = asyncio.get_event_loop()
-        self._session = ClientSession()
         self._queue = PriorityQueue()
         self._events = [Event() for _ in requests]
         self._tasks: set[Task] = set()
@@ -96,13 +95,6 @@ class ResponseIterator(Iterator[Response]):
 
     def _close(self):
         """Close the generator gracefully."""
-        if self._session:
-            self._loop.run_until_complete(self._session.close())
-            # we have to wait here for the session to close
-            # see: https://docs.aiohttp.org/en/stable/client_advanced.html#graceful-shutdown
-            # TODO remove this once aiohttp 4.0 is released, because this will contain a fix
-            self._loop.run_until_complete(asyncio.sleep(0.25))
-
         if self._generator:
             self._loop.run_until_complete(self._generator.aclose())
 
@@ -125,8 +117,13 @@ class ResponseIterator(Iterator[Response]):
                 self._close()
                 break
 
-    def _create_tasks(self) -> Iterator[Task]:
+    def _create_tasks(self, session: ClientSession) -> Iterator[Task]:
         """Create tasks for each resource.
+
+        Parameters
+        ----------
+        session : ClientSession
+            HTTP session to use.
 
         Yields
         ------
@@ -135,13 +132,21 @@ class ResponseIterator(Iterator[Response]):
         """
         for i, (request, event) in enumerate(zip(self.requests, self._events, strict=False)):
             # create task in the background
-            yield self._loop.create_task(self._aprocess_request(i, request, event))
+            yield self._loop.create_task(self._aprocess_request(session, i, request, event))
 
-    async def _aprocess_request(self, priority: int, request: Request, event: Event):
+    async def _aprocess_request(
+        self,
+        session: ClientSession,
+        priority: int,
+        request: Request,
+        event: Event,
+    ):
         """Process a request by fetching and putting it in the queue.
 
         Parameters
         ----------
+        session : ClientSession
+            HTTP session to use.
         priority : int
             Priority of the request.
         request. : Request
@@ -156,7 +161,7 @@ class ResponseIterator(Iterator[Response]):
             LOGGER.debug("Found response in cache")
             response = self.cache.get(request)
         else:
-            response = await self._afetch(request)
+            response = await self._afetch(session, request)
 
             # save response to cache
             if self.cache:
@@ -199,8 +204,11 @@ class ResponseIterator(Iterator[Response]):
             The server's response.
         """
         try:
+            # create session
+            session = ClientSession()
+
             # create tasks (lazy)
-            tasks = self._create_tasks()
+            tasks = self._create_tasks(session)
 
             # process first batch of tasks
             self._process_batch(tasks)
@@ -223,12 +231,22 @@ class ResponseIterator(Iterator[Response]):
                 self.pending -= 1
         except GeneratorExit:
             return
+        finally:
+            # close session
+            await session.close()
 
-    async def _afetch(self, request: Request) -> Response:
+            # we have to wait here for the session to close
+            # see: https://docs.aiohttp.org/en/stable/client_advanced.html#graceful-shutdown
+            # TODO remove this once aiohttp 4.0 is released, because this will contain a fix
+            await asyncio.sleep(0.25)
+
+    async def _afetch(self, session: ClientSession, request: Request) -> Response:
         """Perform a HTTP request.
 
         Parameters
         ----------
+        session : ClientSession
+            HTTP session to use.
         request : Resource
             Resource to request.
 
@@ -238,7 +256,7 @@ class ResponseIterator(Iterator[Response]):
             The server's response.
         """
         try:
-            async with self._session.request(
+            async with session.request(
                 request.method,
                 request.url,
                 headers=request.headers,
