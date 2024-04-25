@@ -42,7 +42,8 @@ class ResponseIterator(Iterator[Response]):
         self.cache = cache
 
         self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
-        self._loop = asyncio.new_event_loop()
+        self._loop = asyncio.get_event_loop()
+        self._session = ClientSession()
         self._queue = PriorityQueue()
         self._events = [Event() for _ in requests]
         self._tasks: set[Task] = set()
@@ -90,30 +91,16 @@ class ResponseIterator(Iterator[Response]):
         return next(self._responses)
 
     def __del__(self):
-        """Cancel open tasks (if any) and close the event loop."""
-        self._cleanup()
+        """Close the generator gracefully."""
+        self._close()
 
-    def _cleanup(self):
-        """Cancel open tasks (if any) and close the event loop."""
-        if self._loop.is_closed():
-            return
+    def _close(self):
+        """Close the generator gracefully."""
+        if self._session:
+            self._loop.run_until_complete(self._session.close())
 
         if self._generator:
             self._loop.run_until_complete(self._generator.aclose())
-
-        # cancel pending tasks (if any)
-        if tasks := {
-            task
-            for task in self._tasks | asyncio.all_tasks(self._loop)
-            if not task.done() or task.cancelled()
-        }:
-            for task in tasks:
-                task.cancel()
-            self._loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
-
-        if not self._loop.is_closed():
-            self._loop.close()
-            asyncio.set_event_loop(None)
 
     def _fetch_responses(self) -> Iterator[Response]:
         """Fetch responses concurrently.
@@ -123,8 +110,6 @@ class ResponseIterator(Iterator[Response]):
         Response
             One response at a time.
         """
-        asyncio.set_event_loop(self._loop)
-
         # set async generator
         self._generator = self._afetch_responses()
 
@@ -133,16 +118,11 @@ class ResponseIterator(Iterator[Response]):
             try:
                 yield self._loop.run_until_complete(anext(self._generator))
             except StopAsyncIteration:
-                self._cleanup()
+                self._close()
                 break
 
-    def _create_tasks(self, session: ClientSession) -> Iterator[Task]:
+    def _create_tasks(self) -> Iterator[Task]:
         """Create tasks for each resource.
-
-        Parameters
-        ----------
-        session : ClientSession
-            Client session to use.
 
         Yields
         ------
@@ -151,23 +131,15 @@ class ResponseIterator(Iterator[Response]):
         """
         for i, (request, event) in enumerate(zip(self.requests, self._events, strict=False)):
             # create task in the background
-            yield self._loop.create_task(self._aprocess_request(i, session, request, event))
+            yield self._loop.create_task(self._aprocess_request(i, request, event))
 
-    async def _aprocess_request(
-        self,
-        priority: int,
-        session: ClientSession,
-        request: Request,
-        event: Event,
-    ):
+    async def _aprocess_request(self, priority: int, request: Request, event: Event):
         """Process a request by fetching and putting it in the queue.
 
         Parameters
         ----------
         priority : int
             Priority of the request.
-        session : ClientSession
-            Client session to use.
         request. : Request
             Resource to request.
         event : Event
@@ -175,12 +147,12 @@ class ResponseIterator(Iterator[Response]):
         """
         LOGGER.debug(f"Started {priority}")
 
-        # if cache is given and has the request, use it
+        # if cache is given and has response for the request, use it
         if self.cache and self.cache.has(request):
             LOGGER.debug("Found response in cache")
             response = self.cache.get(request)
         else:
-            response = await self._afetch(session, request)
+            response = await self._afetch(request)
 
             # save response to cache
             if self.cache:
@@ -223,11 +195,8 @@ class ResponseIterator(Iterator[Response]):
             The server's response.
         """
         try:
-            # one session for all requests
-            session = ClientSession(loop=self._loop)
-
             # create tasks (lazy)
-            tasks = self._create_tasks(session)
+            tasks = self._create_tasks()
 
             # process first batch of tasks
             self._process_batch(tasks)
@@ -250,16 +219,12 @@ class ResponseIterator(Iterator[Response]):
                 self.pending -= 1
         except GeneratorExit:
             return
-        finally:
-            await session.close()
 
-    async def _afetch(self, session: ClientSession, request: Request) -> Response:
+    async def _afetch(self, request: Request) -> Response:
         """Perform a HTTP request.
 
         Parameters
         ----------
-        session : ClientSession
-            Client session to use.
         request : Resource
             Resource to request.
 
@@ -269,7 +234,7 @@ class ResponseIterator(Iterator[Response]):
             The server's response.
         """
         try:
-            async with session.request(
+            async with self._session.request(
                 request.method,
                 request.url,
                 headers=request.headers,
