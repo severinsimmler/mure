@@ -98,6 +98,10 @@ class ResponseIterator(Iterator[Response]):
         """Close the generator gracefully."""
         if self._session:
             self._loop.run_until_complete(self._session.close())
+            # we have to wait here for the session to close
+            # see: https://docs.aiohttp.org/en/stable/client_advanced.html#graceful-shutdown
+            # TODO remove this once aiohttp 4.0 is released, because this will contain a fix
+            self._loop.run_until_complete(asyncio.sleep(0.25))
 
         if self._generator:
             self._loop.run_until_complete(self._generator.aclose())
