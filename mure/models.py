@@ -1,4 +1,6 @@
 import json
+from functools import cached_property
+from hashlib import blake2b
 from typing import Any, Literal, Mapping, NotRequired, TypedDict
 
 Method = Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"]
@@ -59,49 +61,28 @@ class Request:
         """Return the string representation of the request."""
         return f"<Request({self.method}, {self.url})>"
 
-    def __hash__(self) -> int:
-        """Hash the request."""
-        return hash(
-            (
-                self.method,
-                self.url,
-                json.dumps(self.params, sort_keys=True, ensure_ascii=False).lower(),
-                json.dumps(self.json, sort_keys=True, ensure_ascii=False).lower(),
-                self.data
-                if isinstance(self.data, (str, bytes))
-                else json.dumps(self.data, sort_keys=True, ensure_ascii=False),
-            )
-        )
-
-    def __eq__(self, other: "Request") -> bool:
-        """Check if two requests are equal.
-
-        Parameters
-        ----------
-        other : Request
-            Other request to compare.
+    @cached_property
+    def id(self) -> str:
+        """Return the unique identifier of the request.
 
         Returns
         -------
-        bool
-            True if the requests are equal; otherwise, False.
+        str
+            Unique identifier of the request.
         """
-        return self.__hash__() == other.__hash__()
+        # TODO this could/should be improved somehow
+        components: list[str] = [
+            self.method,
+            self.url,
+            json.dumps(self.params, sort_keys=True, ensure_ascii=False).lower(),
+            json.dumps(self.json, sort_keys=True, ensure_ascii=False).lower(),
+            json.dumps(self.data, sort_keys=True, ensure_ascii=False).lower(),
+        ]
 
-    def encode(self, encoding: str = "utf-8") -> bytes:
-        """Encode the request.
-
-        Parameters
-        ----------
-        encoding : str, optional
-            Encoding to use, by default "utf-8".
-
-        Returns
-        -------
-        bytes
-            Encoded request.
-        """
-        return str(self.__hash__()).encode(encoding)
+        key = blake2b(digest_size=8)
+        for component in components:
+            key.update(component.encode("utf-8"))
+        return key.hexdigest()
 
 
 class Response:

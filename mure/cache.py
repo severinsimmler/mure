@@ -103,12 +103,10 @@ class MemoryCache(Cache):
         self._cache[request] = response
 
 
-class DiskCache(MemoryCache):
+class DiskCache(Cache):
     """Simple on-disk cache."""
 
     def __init__(self, path: Path = Path("mure-cache.shelve")):
-        super().__init__()
-
         self.path = path.resolve()
         self._cache = shelve.open(str(self.path))
 
@@ -118,3 +116,45 @@ class DiskCache(MemoryCache):
     def __del__(self):
         """Close the cache."""
         self._cache.close()
+
+    def has(self, request: Request) -> bool:
+        """Check if a request (and its corresponding response) is in the cache.
+
+        Parameters
+        ----------
+        request : Request
+            Request to check if it's in the cache.
+
+        Returns
+        -------
+        bool
+            True if the request is in the cache; otherwise, False.
+        """
+        return request.id in self._cache
+
+    def get(self, request: Request) -> Response | None:
+        """Get the response for the specified request from the cache.
+
+        Parameters
+        ----------
+        request : Request
+            Request to get response from the cache.
+
+        Returns
+        -------
+        Response | None
+            Response from the cache or None if the request is not in the cache.
+        """
+        return self._cache.get(request.id)
+
+    def set(self, request: Request, response: Response):
+        """Save a request and its response to the cache.
+
+        Parameters
+        ----------
+        request : Request
+            Request to save to the cache.
+        response : Response
+            Response to save to the cache.
+        """
+        self._cache[request.id] = response
