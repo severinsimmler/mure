@@ -22,8 +22,8 @@ resources: list[Resource] = [
 
 
 for i, _ in enumerate(mure.get(resources, batch_size=5, cache=cache)):
-    print(f"Received response {i}")
+    LOGGER.info(f"Received response {i}")
 
 # super fast, because responses are cached
 for i, _ in enumerate(mure.get(resources, batch_size=5, cache=cache)):
-    print(f"Received response {i}")
+    LOGGER.info(f"Received response {i}")
