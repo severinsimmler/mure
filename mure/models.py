@@ -70,7 +70,7 @@ class Request:
         str
             Unique identifier of the request.
         """
-        # TODO this could/should be improved somehow
+        # TODO this could/should be improved somehow?
         components: list[str] = [
             self.method,
             self.url,
@@ -82,6 +82,7 @@ class Request:
         key = blake2b(digest_size=8)
         for component in components:
             key.update(component.encode("utf-8"))
+
         return key.hexdigest()
 
 
