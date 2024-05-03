@@ -1,6 +1,7 @@
 import shelve
 from abc import ABC, abstractmethod
 from pathlib import Path
+from threading import Lock
 
 from mure.logging import Logger
 from mure.models import Request, Response
@@ -59,6 +60,7 @@ class MemoryCache(Cache):
 
     def __init__(self):
         self._cache = {}
+        self._lock = Lock()
 
     def has(self, request: Request) -> bool:
         """Check if a request (and its corresponding response) is in the cache.
@@ -100,7 +102,8 @@ class MemoryCache(Cache):
         response : Response
             Response to save to the cache.
         """
-        self._cache[request.id] = response
+        with self._lock:
+            self._cache[request.id] = response
 
 
 class DiskCache(MemoryCache):
