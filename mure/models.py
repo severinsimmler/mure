@@ -3,7 +3,11 @@ from functools import cached_property
 from hashlib import blake2b
 from typing import Any, Literal, Mapping, NotRequired, TypedDict
 
+# supported http methods
 Method = Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"]
+
+# json serializable types
+Serializable = dict | list | str | int | float | bool | None
 
 
 class Resource(TypedDict):
@@ -12,8 +16,8 @@ class Resource(TypedDict):
     url: str
     headers: NotRequired[Mapping[str, str] | None]
     params: NotRequired[Mapping[str, str] | None]
-    data: NotRequired[Any | None]
-    json: NotRequired[Any | None]
+    data: NotRequired[Serializable]
+    json: NotRequired[Serializable]
     timeout: NotRequired[int | None]
 
 
@@ -30,9 +34,9 @@ class Request:
         HTTP headers, by default None.
     params : Mapping[str, str] | None, optional
         URL parameters, by default None.
-    data : Any | None, optional
+    data : Serializable, optional
         Request body, by default None.
-    json : Any | None, optional
+    json : Serializable, optional
         JSON request body, by default None.
     timeout : int | None, optional
         Request timeout in seconds, by default None.
@@ -70,15 +74,15 @@ class Request:
         str
             Unique identifier of the request.
         """
-        # TODO this could/should be improved somehow?
         components: list[str] = [
             self.method,
             self.url,
-            json.dumps(self.params, sort_keys=True, ensure_ascii=False).lower(),
-            json.dumps(self.json, sort_keys=True, ensure_ascii=False).lower(),
-            json.dumps(self.data, sort_keys=True, ensure_ascii=False).lower(),
+            json.dumps(self.params, sort_keys=True),
+            json.dumps(self.json, sort_keys=True),
+            json.dumps(self.data, sort_keys=True),
         ]
 
+        # hash the components to generate a unique identifier
         key = blake2b(digest_size=8)
         for component in components:
             key.update(component.encode("utf-8"))

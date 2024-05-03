@@ -1,6 +1,6 @@
 import asyncio
 import os
-from asyncio import Event, PriorityQueue, Task
+from asyncio import Event, Lock, PriorityQueue, Task
 from collections.abc import AsyncGenerator, Iterator
 from typing import Self
 
@@ -43,6 +43,7 @@ class ResponseIterator(Iterator[Response]):
 
         self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
         self._loop = asyncio.get_event_loop()
+        self._lock = Lock()
         self._queue = PriorityQueue()
         self._events = [Event() for _ in requests]
         self._tasks: set[Task] = set()
@@ -159,13 +160,17 @@ class ResponseIterator(Iterator[Response]):
         # if cache is given and has response for the request, use it
         if self.cache and self.cache.has(request):
             LOGGER.debug(f"Found response {priority} in cache")
-            response = self.cache.get(request)
+            async with self._lock:
+                response = self.cache.get(request)
+            LOGGER.debug(f"Used response {priority} from cache")
         else:
             response = await self._afetch(session, request)
 
             # save response to cache
             if self.cache:
-                self.cache.set(request, response)
+                LOGGER.debug(f"Saving response {priority} in cache")
+                async with self._lock:
+                    self.cache.set(request, response)
                 LOGGER.debug(f"Saved response {priority} in cache")
 
         # put response in the queue
