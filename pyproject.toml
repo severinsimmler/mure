@@ -9,6 +9,7 @@ readme = "README.md"
 python = "^3.11"
 aiohttp = { extras = ["speedups"], version = "^3.8.5" }
 chardet = "^5.2.0"
+msgpack = "^1.0.8"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.1"
