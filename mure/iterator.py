@@ -90,15 +90,6 @@ class ResponseIterator(Iterator[Response]):
         """
         return next(self._responses)
 
-    def __del__(self):
-        """Close the generator gracefully."""
-        self._close()
-
-    def _close(self):
-        """Close the generator gracefully."""
-        if self._generator:
-            self._loop.run_until_complete(self._generator.aclose())
-
     def _fetch_responses(self) -> Iterator[Response]:
         """Fetch responses concurrently.
 
@@ -115,7 +106,7 @@ class ResponseIterator(Iterator[Response]):
             try:
                 yield self._loop.run_until_complete(anext(self._generator))
             except StopAsyncIteration:
-                self._close()
+                self._generator = None
                 break
 
     def _create_tasks(self, session: ClientSession) -> Iterator[Task]:
