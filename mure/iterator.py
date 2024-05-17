@@ -5,7 +5,7 @@ from collections.abc import AsyncGenerator, Iterator
 from typing import Self
 
 import chardet
-from aiohttp import ClientSession
+from httpx import AsyncClient
 
 from mure.cache import Cache
 from mure.logging import Logger
@@ -42,13 +42,18 @@ class ResponseIterator(Iterator[Response]):
         self.cache = cache
 
         self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
-        self._loop = asyncio.get_event_loop()
+        self._loop = asyncio.new_event_loop()
         self._lock = Lock()
         self._queue = PriorityQueue()
         self._events = [Event() for _ in requests]
         self._tasks: set[Task] = set()
         self._responses = self._fetch_responses()
-        self._generator = None
+        self._agenerator = None
+
+    def __del__(self):
+        """Close the event loop."""
+        if not self._loop.is_closed():
+            self._loop.close()
 
     def __repr__(self) -> str:
         """Response iterator representation.
@@ -98,23 +103,25 @@ class ResponseIterator(Iterator[Response]):
         Response
             One response at a time.
         """
+        asyncio.set_event_loop(self._loop)
+
         # set async generator
-        self._generator = self._afetch_responses()
+        self._agenerator = self._agenerator_wrapper()
 
         # run the event loop until a response is available and yield it
         while True:
             try:
-                yield self._loop.run_until_complete(anext(self._generator))
+                yield self._loop.run_until_complete(anext(self._agenerator))
             except StopAsyncIteration:
-                self._generator = None
+                self._agenerator = None
                 break
 
-    def _create_tasks(self, session: ClientSession) -> Iterator[Task]:
+    def _create_tasks(self, session: AsyncClient) -> Iterator[Task]:
         """Create tasks for each resource.
 
         Parameters
         ----------
-        session : ClientSession
+        session : AsyncClient
             HTTP session to use.
 
         Yields
@@ -128,7 +135,7 @@ class ResponseIterator(Iterator[Response]):
 
     async def _aprocess_request(
         self,
-        session: ClientSession,
+        session: AsyncClient,
         priority: int,
         request: Request,
         event: Event,
@@ -137,7 +144,7 @@ class ResponseIterator(Iterator[Response]):
 
         Parameters
         ----------
-        session : ClientSession
+        session : AsyncClient
             HTTP session to use.
         priority : int
             Priority of the request.
@@ -191,6 +198,17 @@ class ResponseIterator(Iterator[Response]):
                 if len(self._tasks) >= self.batch_size:
                     break
 
+    async def _agenerator_wrapper(self) -> AsyncGenerator[Response, None]:
+        """Wrap the response generator.
+
+        Yields
+        ------
+        Response
+            The server's response.
+        """
+        async for response in self._afetch_responses():
+            yield response
+
     async def _afetch_responses(self) -> AsyncGenerator[Response, None]:
         """Fetch responses concurrently.
 
@@ -200,43 +218,33 @@ class ResponseIterator(Iterator[Response]):
             The server's response.
         """
         try:
-            # create session
-            session = ClientSession()
+            async with AsyncClient(follow_redirects=True) as session:
+                # create tasks (lazy)
+                tasks = self._create_tasks(session)
 
-            # create tasks (lazy)
-            tasks = self._create_tasks(session)
-
-            # process first batch of tasks
-            self._process_batch(tasks)
-
-            for event in self._events:
-                # wait for the specific event to be set to preserve order of the requests
-                await event.wait()
-
-                # process next batch of tasks
+                # process first batch of tasks
                 self._process_batch(tasks)
 
-                # get response from the queue
-                _, response = await self._queue.get()
+                for event in self._events:
+                    # wait for the specific event to be set to preserve order of the requests
+                    await event.wait()
 
-                # process next batch of tasks
-                self._process_batch(tasks)
+                    # process next batch of tasks
+                    self._process_batch(tasks)
 
-                yield response
-                self._queue.task_done()
-                self.pending -= 1
+                    # get response from the queue
+                    _, response = await self._queue.get()
+
+                    # process next batch of tasks
+                    self._process_batch(tasks)
+
+                    yield response
+                    self._queue.task_done()
+                    self.pending -= 1
         except GeneratorExit:
             return
-        finally:
-            # close session
-            await session.close()
 
-            # we have to wait here for the session to close
-            # see: https://docs.aiohttp.org/en/stable/client_advanced.html#graceful-shutdown
-            # TODO remove this once aiohttp 4.0 is released, because this will contain a fix
-            await asyncio.sleep(0.25)
-
-    async def _afetch(self, session: ClientSession, request: Request) -> Response:
+    async def _afetch(self, session: AsyncClient, request: Request) -> Response:
         """Perform a HTTP request.
 
         Parameters
@@ -252,7 +260,7 @@ class ResponseIterator(Iterator[Response]):
             The server's response.
         """
         try:
-            async with session.request(
+            response = await session.request(
                 request.method,
                 request.url,
                 headers=request.headers,
@@ -260,27 +268,26 @@ class ResponseIterator(Iterator[Response]):
                 data=request.data,
                 json=request.json,
                 timeout=request.timeout,
-            ) as response:
-                content = await response.read()
-                encoding = response.get_encoding()
+            )
+            content = await response.aread()
 
-                try:
-                    text = content.decode(encoding, errors="replace")
-                except (LookupError, TypeError):
-                    # LookupError is raised if the encoding was not found which could
-                    # indicate a misspelling or similar mistake
-                    #
-                    # TypeError can be raised if encoding is None
-                    encoding = chardet.detect(content)["encoding"]
-                    text = content.decode(encoding or "utf-8", errors="replace")
+            try:
+                text = content.decode(response.encoding or "utf-8", errors="replace")
+            except (LookupError, TypeError):
+                # LookupError is raised if the encoding was not found which could
+                # indicate a misspelling or similar mistake
+                #
+                # TypeError can be raised if encoding is None
+                encoding = chardet.detect(content)["encoding"]
+                text = content.decode(encoding or "utf-8", errors="replace")
 
-                return Response(
-                    status=response.status,
-                    reason=response.reason,
-                    ok=response.ok,
-                    text=text,
-                    url=response.url.human_repr(),
-                )
+            return Response(
+                status=response.status_code,
+                reason=response.reason_phrase,
+                ok=response.is_success,
+                text=text,
+                url=str(response.url),
+            )
         except Exception as error:
             if self._log_errors:
                 LOGGER.error(error)
