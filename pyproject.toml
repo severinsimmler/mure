@@ -1,14 +1,14 @@
 [tool.poetry]
 name = "mure"
-version = "1.0.0b5"
+version = "1.0.0b6"
 description = "Perform multiple HTTP requests concurrently – without worrying about async/await."
 authors = ["Severin Simmler <s.simmler@snapaddy.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-aiohttp = { extras = ["speedups"], version = "^3.8.5" }
 chardet = "^5.2.0"
+httpx = "^0.27.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.1"

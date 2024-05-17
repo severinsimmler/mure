@@ -83,7 +83,7 @@ class Request:
         ]
 
         # hash the components to generate a unique identifier
-        key = blake2b(digest_size=8)
+        key = blake2b(digest_size=16)
         for component in components:
             key.update(component.encode("utf-8"))
 
