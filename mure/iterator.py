@@ -52,8 +52,13 @@ class ResponseIterator(Iterator[Response]):
 
     def __del__(self):
         """Close the event loop."""
-        if not self._loop.is_closed():
-            self._loop.close()
+        try:
+            for task in {task for task in self._tasks if not task.done() or task.cancelled()}:
+                # give canceled tasks the last chance to run
+                self._loop.run_until_complete(task)
+        finally:
+            if not self._loop.is_closed():
+                self._loop.close()
 
     def __repr__(self) -> str:
         """Response iterator representation.
