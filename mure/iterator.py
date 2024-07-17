@@ -51,11 +51,19 @@ class ResponseIterator(Iterator[Response]):
         self._agenerator = None
 
     def __del__(self):
-        """Close the event loop."""
+        """Finish or cancel open tasks and close the event loop."""
         try:
-            for task in {task for task in self._tasks if not task.done() or task.cancelled()}:
-                # give canceled tasks the last chance to run
+            for task in {task for task in self._tasks if not task.done()}:
+                # last try to complete the task
                 self._loop.run_until_complete(task)
+
+                # fml, cancel if still not done
+                if not task.done():
+                    task.cancel()
+                try:
+                    self._loop.run_until_complete(task)
+                except asyncio.CancelledError:
+                    LOGGER.debug("Task was successfully cancelled")
         finally:
             if not self._loop.is_closed():
                 self._loop.close()
