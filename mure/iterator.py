@@ -273,16 +273,17 @@ class ResponseIterator(Iterator[Response]):
             The server's response.
         """
         try:
-            response = await session.request(
-                request.method,
-                request.url,
-                headers=request.headers,
-                params=request.params,
-                data=request.data,
-                json=request.json,
-                timeout=request.timeout,
-            )
-            content = await response.aread()
+            async with asyncio.timeout(request.timeout):
+                response = await session.request(
+                    request.method,
+                    request.url,
+                    headers=request.headers,
+                    params=request.params,
+                    data=request.data,
+                    json=request.json,
+                    timeout=request.timeout,
+                )
+                content = await response.aread()
 
             try:
                 text = content.decode(response.encoding or "utf-8", errors="replace")
