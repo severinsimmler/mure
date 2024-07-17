@@ -39,7 +39,7 @@ class Request:
     json : Serializable, optional
         JSON request body, by default None.
     timeout : int | None, optional
-        Request timeout in seconds, by default None.
+        Request timeout in seconds, by default 10.
     """
 
     def __init__(
@@ -51,7 +51,7 @@ class Request:
         params: Mapping[str, str] | None = None,
         data: Any | None = None,
         json: Any | None = None,
-        timeout: int | None = None,
+        timeout: int | None = 10,
     ):
         self.method = method
         self.url = url

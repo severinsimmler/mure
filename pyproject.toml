@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mure"
-version = "1.0.1"
+version = "1.0.2"
 description = "Perform multiple HTTP requests concurrently – without worrying about async/await."
 authors = ["Severin Simmler <s.simmler@snapaddy.com>"]
 readme = "README.md"
