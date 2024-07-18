@@ -1,6 +1,8 @@
+from typing import Generator
+
 from mure.cache import Cache
 from mure.iterator import ResponseIterator
-from mure.models import Request, Resource
+from mure.models import Request, Resource, Response
 
 
 def delete(
@@ -8,7 +10,7 @@ def delete(
     *,
     batch_size: int = 5,
     cache: Cache | None = None,
-) -> ResponseIterator:
+) -> Generator[Response, None, None]:
     """Perform a DELETE request for each resource.
 
     Parameters
@@ -25,10 +27,13 @@ def delete(
     ResponseIterator
         The server's responses for each resource.
     """
-    return ResponseIterator(
-        [Request("DELETE", **resource) for resource in resources],
-        batch_size=batch_size,
-        cache=cache,
+    return (
+        response
+        for response in ResponseIterator(
+            [Request("DELETE", **resource) for resource in resources],
+            batch_size=batch_size,
+            cache=cache,
+        )
     )
 
 
@@ -37,7 +42,7 @@ def get(
     *,
     batch_size: int = 5,
     cache: Cache | None = None,
-) -> ResponseIterator:
+) -> Generator[Response, None, None]:
     """Perform a GET request for each resource.
 
     Parameters
@@ -54,10 +59,13 @@ def get(
     ResponseIterator
         The server's responses for each resource.
     """
-    return ResponseIterator(
-        [Request("GET", **resource) for resource in resources],
-        batch_size=batch_size,
-        cache=cache,
+    return (
+        response
+        for response in ResponseIterator(
+            [Request("GET", **resource) for resource in resources],
+            batch_size=batch_size,
+            cache=cache,
+        )
     )
 
 
@@ -66,7 +74,7 @@ def head(
     *,
     batch_size: int = 5,
     cache: Cache | None = None,
-) -> ResponseIterator:
+) -> Generator[Response, None, None]:
     """Perform a HEAD request for each resource.
 
     Parameters
@@ -83,10 +91,13 @@ def head(
     ResponseIterator
         The server's responses for each resource.
     """
-    return ResponseIterator(
-        [Request("HEAD", **resource) for resource in resources],
-        batch_size=batch_size,
-        cache=cache,
+    return (
+        response
+        for response in ResponseIterator(
+            [Request("HEAD", **resource) for resource in resources],
+            batch_size=batch_size,
+            cache=cache,
+        )
     )
 
 
@@ -95,7 +106,7 @@ def patch(
     *,
     batch_size: int = 5,
     cache: Cache | None = None,
-) -> ResponseIterator:
+) -> Generator[Response, None, None]:
     """Perform a PATCH request for each resource.
 
     Parameters
@@ -112,10 +123,13 @@ def patch(
     ResponseIterator
         The server's responses for each resource.
     """
-    return ResponseIterator(
-        [Request("PATCH", **resource) for resource in resources],
-        batch_size=batch_size,
-        cache=cache,
+    return (
+        response
+        for response in ResponseIterator(
+            [Request("PATCH", **resource) for resource in resources],
+            batch_size=batch_size,
+            cache=cache,
+        )
     )
 
 
@@ -124,7 +138,7 @@ def post(
     *,
     batch_size: int = 5,
     cache: Cache | None = None,
-) -> ResponseIterator:
+) -> Generator[Response, None, None]:
     """Perform a POST request for each resource.
 
     Parameters
@@ -141,10 +155,13 @@ def post(
     ResponseIterator
         The server's responses for each resource.
     """
-    return ResponseIterator(
-        [Request("POST", **resource) for resource in resources],
-        batch_size=batch_size,
-        cache=cache,
+    return (
+        response
+        for response in ResponseIterator(
+            [Request("POST", **resource) for resource in resources],
+            batch_size=batch_size,
+            cache=cache,
+        )
     )
 
 
@@ -153,7 +170,7 @@ def put(
     *,
     batch_size: int = 5,
     cache: Cache | None = None,
-) -> ResponseIterator:
+) -> Generator[Response, None, None]:
     """Perform a PUT request for each resource.
 
     Parameters
@@ -170,8 +187,11 @@ def put(
     ResponseIterator
         The server's responses for each resource.
     """
-    return ResponseIterator(
-        [Request("PUT", **resource) for resource in resources],
-        batch_size=batch_size,
-        cache=cache,
+    return (
+        response
+        for response in ResponseIterator(
+            [Request("PUT", **resource) for resource in resources],
+            batch_size=batch_size,
+            cache=cache,
+        )
     )
