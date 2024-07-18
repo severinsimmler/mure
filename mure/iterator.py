@@ -22,6 +22,7 @@ class ResponseIterator(Iterator[Response]):
         requests: list[Request],
         *,
         batch_size: int = 5,
+        queue_size: int | None = None,
         cache: Cache | None = None,
     ):
         """Initialize a response iterator.
@@ -32,6 +33,8 @@ class ResponseIterator(Iterator[Response]):
             Resources to request.
         batch_size : int, optional
             Number of resources to request concurrently, by default 5.
+        queue_size : int | None, optional
+            Maximum number of responses to hold in the queue, by default None.
         cache : Cache | None, optional
             Cache to use for storing responses, by default None.
         """
@@ -39,11 +42,13 @@ class ResponseIterator(Iterator[Response]):
         self.num_requests = len(requests)
         self.pending = len(requests)
         self.batch_size = batch_size
+        self.queue_size = queue_size
         self.cache = cache
 
         self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
         self._lock = Lock()
-        self._semaphore = Semaphore(batch_size)
+        self._http_semaphore = Semaphore(batch_size)
+        self._queue_semaphore = Semaphore(queue_size or len(requests))
         self._events = [Event() for _ in requests]
         self._tasks = []
         self._queue = PriorityQueue()
@@ -113,16 +118,23 @@ class ResponseIterator(Iterator[Response]):
         # cleanup the event loop
         asyncio.set_event_loop(None)
 
-    def _create_tasks(self, session: AsyncClient, loop: AbstractEventLoop):
-        """Create tasks for fetching responses concurrently.
+    def _schedule_tasks(self, session: AsyncClient, loop: AbstractEventLoop):
+        """Schedule tasks for fetching responses concurrently.
 
         Parameters
         ----------
+        session : AsyncClient
+            HTTP session to use.
         loop : AbstractEventLoop
             Event loop to use.
         """
-        for priority, (request, event) in enumerate(zip(self.requests, self._events)):
-            coroutine = self._aprocess_request(session, priority, request, event)
+        for priority, request in enumerate(self.requests):
+            coroutine = self._aprocess_request(
+                session,
+                priority,
+                request,
+                self._events[priority],
+            )
             self._tasks.append(loop.create_task(coroutine))
 
     async def _aprocess_request(
@@ -145,31 +157,32 @@ class ResponseIterator(Iterator[Response]):
         event : Event
             Event to set when the response is ready.
         """
-        LOGGER.debug(f"Started {priority}")
+        async with self._queue_semaphore:
+            LOGGER.debug(f"Started {priority}")
 
-        # if cache is given and has response for the request, use it
-        if self.cache and self.cache.has(request):
-            LOGGER.debug(f"Found response {priority} in cache")
-            async with self._lock:
-                response = self.cache.get(request)
-            LOGGER.debug(f"Used response {priority} from cache")
-        else:
-            response = await self._asend(session, request)
-
-            # save response to cache
-            if self.cache:
-                LOGGER.debug(f"Saving response {priority} in cache")
+            # if cache is given and has response for the request, use it
+            if self.cache and self.cache.has(request):
+                LOGGER.debug(f"Found response {priority} in cache")
                 async with self._lock:
-                    self.cache.set(request, response)
-                LOGGER.debug(f"Saved response {priority} in cache")
+                    response = self.cache.get(request)
+                LOGGER.debug(f"Used response {priority} from cache")
+            else:
+                response = await self._asend_request(session, request)
 
-        # put response in the queue
-        await self._queue.put((priority, response))
+                # save response to cache
+                if self.cache:
+                    LOGGER.debug(f"Saving response {priority} in cache")
+                    async with self._lock:
+                        self.cache.set(request, response)
+                    LOGGER.debug(f"Saved response {priority} in cache")
 
-        # set event to notify that the response is ready
-        event.set()
+            # put response in the queue
+            await self._queue.put((priority, response))
 
-        LOGGER.debug(f"Finished {priority}")
+            # set event to notify that the response is ready
+            event.set()
+
+            LOGGER.debug(f"Finished {priority}")
 
     async def _agenerator_wrapper(self, loop: AbstractEventLoop) -> AsyncGenerator[Response, None]:
         """Wrap the response generator.
@@ -202,23 +215,24 @@ class ResponseIterator(Iterator[Response]):
         """
         try:
             async with AsyncClient(follow_redirects=True) as session:
-                # create all tasks
-                self._create_tasks(session, loop)
+                # schedule tasks for fetching responses concurrently
+                self._schedule_tasks(session, loop)
 
                 for event in self._events:
                     # wait for the specific event to be set to preserve order of the requests
                     await event.wait()
 
                     # get response from the queue
-                    _, response = await self._queue.get()
+                    priority, response = await self._queue.get()
                     self._queue.task_done()
 
+                    LOGGER.debug(f"Yielding {priority}")
                     yield response
                     self.pending -= 1
         except GeneratorExit:
             return
 
-    async def _asend(self, session: AsyncClient, request: Request) -> Response:
+    async def _asend_request(self, session: AsyncClient, request: Request) -> Response:
         """Perform a HTTP request.
 
         Parameters
@@ -235,7 +249,8 @@ class ResponseIterator(Iterator[Response]):
         """
         try:
             # acquire semaphore to limit the number of concurrent requests
-            async with self._semaphore:
+            async with self._http_semaphore:
+                LOGGER.debug("Sending request")
                 response = await session.request(
                     request.method,
                     request.url,
