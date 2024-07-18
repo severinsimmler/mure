@@ -24,7 +24,7 @@ def delete(
 
     Returns
     -------
-    ResponseIterator
+    Generator[Response, None, None]
         The server's responses for each resource.
     """
     return (
@@ -56,7 +56,7 @@ def get(
 
     Returns
     -------
-    ResponseIterator
+    Generator[Response, None, None]
         The server's responses for each resource.
     """
     return (
@@ -88,7 +88,7 @@ def head(
 
     Returns
     -------
-    ResponseIterator
+    Generator[Response, None, None]
         The server's responses for each resource.
     """
     return (
@@ -120,7 +120,7 @@ def patch(
 
     Returns
     -------
-    ResponseIterator
+    Generator[Response, None, None]
         The server's responses for each resource.
     """
     return (
@@ -152,7 +152,7 @@ def post(
 
     Returns
     -------
-    ResponseIterator
+    Generator[Response, None, None]
         The server's responses for each resource.
     """
     return (
@@ -184,7 +184,7 @@ def put(
 
     Returns
     -------
-    ResponseIterator
+    Generator[Response, None, None]
         The server's responses for each resource.
     """
     return (
