@@ -1,6 +1,6 @@
 import asyncio
 import os
-from asyncio import Event, Lock, PriorityQueue, Task
+from asyncio import AbstractEventLoop, Event, Lock, PriorityQueue, Semaphore
 from collections.abc import AsyncGenerator, Iterator
 from typing import Self
 
@@ -42,31 +42,12 @@ class ResponseIterator(Iterator[Response]):
         self.cache = cache
 
         self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
-        self._loop = asyncio.new_event_loop()
         self._lock = Lock()
-        self._queue = PriorityQueue()
+        self._semaphore = Semaphore(batch_size)
         self._events = [Event() for _ in requests]
-        self._tasks: set[Task] = set()
+        self._tasks = []
+        self._queue = PriorityQueue()
         self._responses = self._fetch_responses()
-        self._agenerator = None
-
-    def __del__(self):
-        """Finish or cancel open tasks and close the event loop."""
-        try:
-            for task in {task for task in self._tasks if not task.done()}:
-                # last try to complete the task
-                self._loop.run_until_complete(task)
-
-                # fml, cancel if still not done
-                if not task.done():
-                    task.cancel()
-                try:
-                    self._loop.run_until_complete(task)
-                except asyncio.CancelledError:
-                    LOGGER.debug("Task was successfully cancelled")
-        finally:
-            if not self._loop.is_closed():
-                self._loop.close()
 
     def __repr__(self) -> str:
         """Response iterator representation.
@@ -116,35 +97,33 @@ class ResponseIterator(Iterator[Response]):
         Response
             One response at a time.
         """
-        asyncio.set_event_loop(self._loop)
+        # create and set a new event loop that is used for all operations
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
-        # set async generator
-        self._agenerator = self._agenerator_wrapper()
+        agenerator = self._agenerator_wrapper(loop)
 
         # run the event loop until a response is available and yield it
         while True:
             try:
-                yield self._loop.run_until_complete(anext(self._agenerator))
+                yield loop.run_until_complete(anext(agenerator))
             except StopAsyncIteration:
-                self._agenerator = None
                 break
 
-    def _create_tasks(self, session: AsyncClient) -> Iterator[Task]:
-        """Create tasks for each resource.
+        # cleanup the event loop
+        asyncio.set_event_loop(None)
+
+    def _create_tasks(self, session: AsyncClient, loop: AbstractEventLoop):
+        """Create tasks for fetching responses concurrently.
 
         Parameters
         ----------
-        session : AsyncClient
-            HTTP session to use.
-
-        Yields
-        ------
-        Iterator[Task]
-            Tasks to fetch resources.
+        loop : AbstractEventLoop
+            Event loop to use.
         """
-        for i, (request, event) in enumerate(zip(self.requests, self._events, strict=False)):
-            # create task in the background
-            yield self._loop.create_task(self._aprocess_request(session, i, request, event))
+        for priority, (request, event) in enumerate(zip(self.requests, self._events)):
+            coroutine = self._aprocess_request(session, priority, request, event)
+            self._tasks.append(loop.create_task(coroutine))
 
     async def _aprocess_request(
         self,
@@ -175,7 +154,7 @@ class ResponseIterator(Iterator[Response]):
                 response = self.cache.get(request)
             LOGGER.debug(f"Used response {priority} from cache")
         else:
-            response = await self._afetch(session, request)
+            response = await self._asend(session, request)
 
             # save response to cache
             if self.cache:
@@ -192,38 +171,29 @@ class ResponseIterator(Iterator[Response]):
 
         LOGGER.debug(f"Finished {priority}")
 
-    def _process_batch(self, tasks: Iterator[Task]):
-        """Fill the queue with tasks.
+    async def _agenerator_wrapper(self, loop: AbstractEventLoop) -> AsyncGenerator[Response, None]:
+        """Wrap the response generator.
 
         Parameters
         ----------
-        tasks : Iterator[Task]
-            Tasks to put in the queue.
-        """
-        if len(self._tasks) < self.batch_size:
-            for task in tasks:
-                # keep track of the task
-                self._tasks.add(task)
-
-                # and remove task when it's done
-                task.add_done_callback(self._tasks.remove)
-
-                if len(self._tasks) >= self.batch_size:
-                    break
-
-    async def _agenerator_wrapper(self) -> AsyncGenerator[Response, None]:
-        """Wrap the response generator.
+        loop : AbstractEventLoop
+            Event loop to use.
 
         Yields
         ------
         Response
             The server's response.
         """
-        async for response in self._afetch_responses():
+        async for response in self._afetch_responses(loop):
             yield response
 
-    async def _afetch_responses(self) -> AsyncGenerator[Response, None]:
+    async def _afetch_responses(self, loop: AbstractEventLoop) -> AsyncGenerator[Response, None]:
         """Fetch responses concurrently.
+
+        Parameters
+        ----------
+        loop : AbstractEventLoop
+            Event loop to use.
 
         Yields
         ------
@@ -232,32 +202,23 @@ class ResponseIterator(Iterator[Response]):
         """
         try:
             async with AsyncClient(follow_redirects=True) as session:
-                # create tasks (lazy)
-                tasks = self._create_tasks(session)
-
-                # process first batch of tasks
-                self._process_batch(tasks)
+                # create all tasks
+                self._create_tasks(session, loop)
 
                 for event in self._events:
                     # wait for the specific event to be set to preserve order of the requests
                     await event.wait()
 
-                    # process next batch of tasks
-                    self._process_batch(tasks)
-
                     # get response from the queue
                     _, response = await self._queue.get()
-
-                    # process next batch of tasks
-                    self._process_batch(tasks)
+                    self._queue.task_done()
 
                     yield response
-                    self._queue.task_done()
                     self.pending -= 1
         except GeneratorExit:
             return
 
-    async def _afetch(self, session: AsyncClient, request: Request) -> Response:
+    async def _asend(self, session: AsyncClient, request: Request) -> Response:
         """Perform a HTTP request.
 
         Parameters
@@ -273,7 +234,8 @@ class ResponseIterator(Iterator[Response]):
             The server's response.
         """
         try:
-            async with asyncio.timeout(request.timeout):
+            # acquire semaphore to limit the number of concurrent requests
+            async with self._semaphore:
                 response = await session.request(
                     request.method,
                     request.url,
@@ -283,7 +245,8 @@ class ResponseIterator(Iterator[Response]):
                     json=request.json,
                     timeout=request.timeout,
                 )
-                content = await response.aread()
+
+            content = await response.aread()
 
             try:
                 text = content.decode(response.encoding or "utf-8", errors="replace")
