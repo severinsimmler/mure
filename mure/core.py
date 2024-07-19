@@ -9,7 +9,7 @@ def delete(
     resources: list[Resource],
     *,
     batch_size: int = 5,
-    queue_size: int | None = None,
+    queue_size: int | None = 10,
     cache: Cache | None = None,
 ) -> Generator[Response, None, None]:
     """Perform a DELETE request for each resource.
@@ -45,7 +45,7 @@ def get(
     resources: list[Resource],
     *,
     batch_size: int = 5,
-    queue_size: int | None = None,
+    queue_size: int | None = 10,
     cache: Cache | None = None,
 ) -> Generator[Response, None, None]:
     """Perform a GET request for each resource.
@@ -81,7 +81,7 @@ def head(
     resources: list[Resource],
     *,
     batch_size: int = 5,
-    queue_size: int | None = None,
+    queue_size: int | None = 10,
     cache: Cache | None = None,
 ) -> Generator[Response, None, None]:
     """Perform a HEAD request for each resource.
@@ -117,7 +117,7 @@ def patch(
     resources: list[Resource],
     *,
     batch_size: int = 5,
-    queue_size: int | None = None,
+    queue_size: int | None = 10,
     cache: Cache | None = None,
 ) -> Generator[Response, None, None]:
     """Perform a PATCH request for each resource.
@@ -153,7 +153,7 @@ def post(
     resources: list[Resource],
     *,
     batch_size: int = 5,
-    queue_size: int | None = None,
+    queue_size: int | None = 10,
     cache: Cache | None = None,
 ) -> Generator[Response, None, None]:
     """Perform a POST request for each resource.
@@ -189,7 +189,7 @@ def put(
     resources: list[Resource],
     *,
     batch_size: int = 5,
-    queue_size: int | None = None,
+    queue_size: int | None = 10,
     cache: Cache | None = None,
 ) -> Generator[Response, None, None]:
     """Perform a PUT request for each resource.
