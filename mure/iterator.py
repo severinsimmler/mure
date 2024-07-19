@@ -102,9 +102,8 @@ class ResponseIterator(Iterator[Response]):
         Response
             One response at a time.
         """
-        # create and set a new event loop that is used for all operations
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        # get event loop that is used for all operations
+        loop = asyncio.get_event_loop()
 
         agenerator = self._agenerator_wrapper(loop)
 
@@ -114,9 +113,6 @@ class ResponseIterator(Iterator[Response]):
                 yield loop.run_until_complete(anext(agenerator))
             except StopAsyncIteration:
                 break
-
-        # cleanup the event loop
-        asyncio.set_event_loop(None)
 
     def _schedule_tasks(self, session: AsyncClient, loop: AbstractEventLoop):
         """Schedule tasks for fetching responses concurrently.
