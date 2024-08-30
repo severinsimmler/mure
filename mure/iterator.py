@@ -1,6 +1,7 @@
 import asyncio
+import contextlib
 import os
-from asyncio import AbstractEventLoop, Event, Lock, PriorityQueue, Semaphore
+from asyncio import AbstractEventLoop, Event, Lock, PriorityQueue
 from collections.abc import AsyncGenerator, Iterator
 from typing import Self
 
@@ -22,7 +23,6 @@ class ResponseIterator(Iterator[Response]):
         requests: list[Request],
         *,
         batch_size: int = 5,
-        queue_size: int | None = None,
         cache: Cache | None = None,
     ):
         """Initialize a response iterator.
@@ -33,8 +33,6 @@ class ResponseIterator(Iterator[Response]):
             Resources to request.
         batch_size : int, optional
             Number of resources to request concurrently, by default 5.
-        queue_size : int | None, optional
-            Maximum number of responses to hold in the queue, by default None.
         cache : Cache | None, optional
             Cache to use for storing responses, by default None.
         """
@@ -42,16 +40,13 @@ class ResponseIterator(Iterator[Response]):
         self.num_requests = len(requests)
         self.pending = len(requests)
         self.batch_size = batch_size
-        self.queue_size = queue_size
         self.cache = cache
 
         self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
         self._lock = Lock()
-        self._http_semaphore = Semaphore(batch_size)
-        self._queue_semaphore = Semaphore(queue_size or len(requests))
+        self._queue = PriorityQueue()
         self._events = [Event() for _ in requests]
         self._tasks = []
-        self._queue = PriorityQueue()
         self._responses = self._fetch_responses()
 
     def __repr__(self) -> str:
@@ -131,7 +126,16 @@ class ResponseIterator(Iterator[Response]):
                 request,
                 self._events[priority],
             )
-            self._tasks.append(loop.create_task(coroutine))
+
+            # create task
+            task = loop.create_task(coroutine)
+
+            # track it in the list of tasks
+            self._tasks.append(task)
+
+            # remove it from the list of tasks when it is done
+            task.add_done_callback(self._tasks.remove)
+            yield
 
     async def _aprocess_request(
         self,
@@ -153,32 +157,31 @@ class ResponseIterator(Iterator[Response]):
         event : Event
             Event to set when the response is ready.
         """
-        async with self._queue_semaphore:
-            LOGGER.debug(f"Started {priority}")
+        LOGGER.debug(f"Started {priority}")
 
-            # if cache is given and has response for the request, use it
-            if self.cache and self.cache.has(request):
-                LOGGER.debug(f"Found response {priority} in cache")
+        # if cache is given and has response for the request, use it
+        if self.cache and self.cache.has(request):
+            LOGGER.debug(f"Found response {priority} in cache")
+            async with self._lock:
+                response = self.cache.get(request)
+            LOGGER.debug(f"Used response {priority} from cache")
+        else:
+            response = await self._asend_request(session, request)
+
+            # save response to cache
+            if self.cache:
+                LOGGER.debug(f"Saving response {priority} in cache")
                 async with self._lock:
-                    response = self.cache.get(request)
-                LOGGER.debug(f"Used response {priority} from cache")
-            else:
-                response = await self._asend_request(session, request)
+                    self.cache.set(request, response)
+                LOGGER.debug(f"Saved response {priority} in cache")
 
-                # save response to cache
-                if self.cache:
-                    LOGGER.debug(f"Saving response {priority} in cache")
-                    async with self._lock:
-                        self.cache.set(request, response)
-                    LOGGER.debug(f"Saved response {priority} in cache")
+        # put response in the queue
+        await self._queue.put((priority, response))
 
-            # put response in the queue
-            await self._queue.put((priority, response))
+        # set event to notify that the response is ready
+        event.set()
 
-            # set event to notify that the response is ready
-            event.set()
-
-            LOGGER.debug(f"Finished {priority}")
+        LOGGER.debug(f"Finished {priority}")
 
     async def _agenerator_wrapper(self, loop: AbstractEventLoop) -> AsyncGenerator[Response, None]:
         """Wrap the response generator.
@@ -212,7 +215,9 @@ class ResponseIterator(Iterator[Response]):
         try:
             async with AsyncClient(follow_redirects=True) as session:
                 # schedule tasks for fetching responses concurrently
-                self._schedule_tasks(session, loop)
+                tasks = self._schedule_tasks(session, loop)
+                while len(self._tasks) < self.batch_size:
+                    next(tasks)
 
                 for event in self._events:
                     # wait for the specific event to be set to preserve order of the requests
@@ -225,6 +230,10 @@ class ResponseIterator(Iterator[Response]):
                     LOGGER.debug(f"Yielding {priority}")
                     yield response
                     self.pending -= 1
+
+                    with contextlib.suppress(StopIteration):
+                        # schedule next task (if any left)
+                        next(tasks)
         except GeneratorExit:
             return
 
@@ -244,18 +253,16 @@ class ResponseIterator(Iterator[Response]):
             The server's response.
         """
         try:
-            # acquire semaphore to limit the number of concurrent requests
-            async with self._http_semaphore:
-                LOGGER.debug("Sending request")
-                response = await session.request(
-                    request.method,
-                    request.url,
-                    headers=request.headers,
-                    params=request.params,
-                    data=request.data,
-                    json=request.json,
-                    timeout=request.timeout,
-                )
+            LOGGER.info("Sending request")
+            response = await session.request(
+                request.method,
+                request.url,
+                headers=request.headers,
+                params=request.params,
+                data=request.data,
+                json=request.json,
+                timeout=request.timeout,
+            )
 
             content = await response.aread()
 

@@ -9,7 +9,6 @@ def delete(
     resources: list[Resource],
     *,
     batch_size: int = 5,
-    queue_size: int | None = 10,
     cache: Cache | None = None,
 ) -> Generator[Response, None, None]:
     """Perform a DELETE request for each resource.
@@ -20,8 +19,6 @@ def delete(
         Resources to request.
     batch_size : int
         Number of items to request per batch concurrently, by default 5.
-    queue_size : int | None, optional
-        Maximum number of responses to hold in the queue, by default None.
     cache : Cache | None, optional
         Cache to use for storing responses, by default None.
 
@@ -35,7 +32,6 @@ def delete(
         for response in ResponseIterator(
             [Request("DELETE", **resource) for resource in resources],
             batch_size=batch_size,
-            queue_size=queue_size,
             cache=cache,
         )
     )
@@ -45,7 +41,6 @@ def get(
     resources: list[Resource],
     *,
     batch_size: int = 5,
-    queue_size: int | None = 10,
     cache: Cache | None = None,
 ) -> Generator[Response, None, None]:
     """Perform a GET request for each resource.
@@ -56,8 +51,6 @@ def get(
         Resources to request.
     batch_size : int
         Number of items to request per batch concurrently, by default 5.
-    queue_size : int | None, optional
-        Maximum number of responses to hold in the queue, by default None.
     cache : Cache | None, optional
         Cache to use for storing responses, by default None.
 
@@ -71,7 +64,6 @@ def get(
         for response in ResponseIterator(
             [Request("GET", **resource) for resource in resources],
             batch_size=batch_size,
-            queue_size=queue_size,
             cache=cache,
         )
     )
@@ -81,7 +73,6 @@ def head(
     resources: list[Resource],
     *,
     batch_size: int = 5,
-    queue_size: int | None = 10,
     cache: Cache | None = None,
 ) -> Generator[Response, None, None]:
     """Perform a HEAD request for each resource.
@@ -92,8 +83,6 @@ def head(
         Resources to request.
     batch_size : int
         Number of items to request per batch concurrently, by default 5.
-    queue_size : int | None, optional
-        Maximum number of responses to hold in the queue, by default None.
     cache : Cache | None, optional
         Cache to use for storing responses, by default None.
 
@@ -107,7 +96,6 @@ def head(
         for response in ResponseIterator(
             [Request("HEAD", **resource) for resource in resources],
             batch_size=batch_size,
-            queue_size=queue_size,
             cache=cache,
         )
     )
@@ -117,7 +105,6 @@ def patch(
     resources: list[Resource],
     *,
     batch_size: int = 5,
-    queue_size: int | None = 10,
     cache: Cache | None = None,
 ) -> Generator[Response, None, None]:
     """Perform a PATCH request for each resource.
@@ -128,8 +115,6 @@ def patch(
         Resources to request.
     batch_size : int
         Number of items to request per batch concurrently, by default 5.
-    queue_size : int | None, optional
-        Maximum number of responses to hold in the queue, by default None.
     cache : Cache | None, optional
         Cache to use for storing responses, by default None.
 
@@ -143,7 +128,6 @@ def patch(
         for response in ResponseIterator(
             [Request("PATCH", **resource) for resource in resources],
             batch_size=batch_size,
-            queue_size=queue_size,
             cache=cache,
         )
     )
@@ -153,7 +137,6 @@ def post(
     resources: list[Resource],
     *,
     batch_size: int = 5,
-    queue_size: int | None = 10,
     cache: Cache | None = None,
 ) -> Generator[Response, None, None]:
     """Perform a POST request for each resource.
@@ -164,8 +147,6 @@ def post(
         Resources to request.
     batch_size : int
         Number of items to request per batch concurrently, by default 5.
-    queue_size : int | None, optional
-        Maximum number of responses to hold in the queue, by default None.
     cache : Cache | None, optional
         Cache to use for storing responses, by default None.
 
@@ -179,7 +160,6 @@ def post(
         for response in ResponseIterator(
             [Request("POST", **resource) for resource in resources],
             batch_size=batch_size,
-            queue_size=queue_size,
             cache=cache,
         )
     )
@@ -189,7 +169,6 @@ def put(
     resources: list[Resource],
     *,
     batch_size: int = 5,
-    queue_size: int | None = 10,
     cache: Cache | None = None,
 ) -> Generator[Response, None, None]:
     """Perform a PUT request for each resource.
@@ -200,8 +179,6 @@ def put(
         Resources to request.
     batch_size : int
         Number of items to request per batch concurrently, by default 5.
-    queue_size : int | None, optional
-        Maximum number of responses to hold in the queue, by default None.
     cache : Cache | None, optional
         Cache to use for storing responses, by default None.
 
@@ -215,7 +192,6 @@ def put(
         for response in ResponseIterator(
             [Request("PUT", **resource) for resource in resources],
             batch_size=batch_size,
-            queue_size=queue_size,
             cache=cache,
         )
     )
