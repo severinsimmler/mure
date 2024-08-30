@@ -46,7 +46,7 @@ class ResponseIterator(Iterator[Response]):
         self._lock = Lock()
         self._queue = PriorityQueue()
         self._events = [Event() for _ in requests]
-        self._tasks = []
+        self._tasks = {}
         self._responses = self._fetch_responses()
 
     def __repr__(self) -> str:
@@ -132,14 +132,7 @@ class ResponseIterator(Iterator[Response]):
                 self._events[priority],
             )
 
-            # create task
-            task = loop.create_task(coroutine)
-
-            # track it in the list of tasks
-            self._tasks.append(task)
-
-            # remove it from the list of tasks when it is done
-            task.add_done_callback(self._tasks.remove)
+            self._tasks[priority] = loop.create_task(coroutine)
             yield
 
     async def _aprocess_request(
@@ -238,6 +231,9 @@ class ResponseIterator(Iterator[Response]):
                     LOGGER.debug(f"Yielding {priority}")
                     yield response
                     self.pending -= 1
+
+                    # get rid of the task that has been completed
+                    self._tasks.pop(priority)
 
                     with contextlib.suppress(StopIteration):
                         # schedule next task (if any left)
