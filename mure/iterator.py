@@ -253,7 +253,7 @@ class ResponseIterator(Iterator[Response]):
             The server's response.
         """
         try:
-            LOGGER.info("Sending request")
+            LOGGER.debug("Sending request")
             response = await session.request(
                 request.method,
                 request.url,
