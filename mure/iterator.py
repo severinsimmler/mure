@@ -211,7 +211,7 @@ class ResponseIterator(Iterator[Response]):
             The server's response.
         """
         try:
-            async with AsyncClient(follow_redirects=True) as session:
+            async with AsyncClient(follow_redirects=True, http2=True) as session:
                 # schedule tasks for fetching responses concurrently
                 tasks = self._schedule_tasks(session, loop)
                 while len(self._tasks) < self.batch_size:
