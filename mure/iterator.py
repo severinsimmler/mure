@@ -228,12 +228,12 @@ class ResponseIterator(Iterator[Response]):
                     priority, response = await self._queue.get()
                     self._queue.task_done()
 
+                    # get rid of the task that has been completed
+                    self._tasks.pop(priority)
+
                     LOGGER.debug(f"Yielding {priority}")
                     yield response
                     self.pending -= 1
-
-                    # get rid of the task that has been completed
-                    self._tasks.pop(priority)
 
                     with contextlib.suppress(StopIteration):
                         # schedule next task (if any left)
