@@ -113,7 +113,7 @@ class DiskCache(MemoryCache):
         if self.path.exists():
             LOGGER.warning(f"Cache ({self.path}) already exists")
 
-        self._cache = shelve.open(str(self.path))
+        self._cache = shelve.open(str(self.path))  # noqa SIM115
 
     def __del__(self):
         """Close the cache."""

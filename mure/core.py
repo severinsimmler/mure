@@ -1,4 +1,4 @@
-from typing import Generator
+from collections.abc import Generator
 
 from mure.cache import Cache
 from mure.iterator import ResponseIterator
