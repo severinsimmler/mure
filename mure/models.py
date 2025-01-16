@@ -1,7 +1,8 @@
 import json
+from collections.abc import Mapping
 from functools import cached_property
 from hashlib import blake2b
-from typing import Any, Literal, Mapping, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 # supported http methods
 Method = Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"]
@@ -115,12 +116,14 @@ class Response:
         reason: str | None,
         url: str,
         text: str,
+        content: bytes,
     ):
         self.ok = ok
         self.status = status
         self.reason = reason
         self.url = url
         self.text = text
+        self.content = content
 
     def __repr__(self) -> str:
         """Return the string representation of the response."""
