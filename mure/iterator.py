@@ -285,10 +285,11 @@ class ResponseIterator(Iterator[Response]):
                 reason=response.reason_phrase,
                 ok=response.is_success,
                 text=text,
+                content=content,
                 url=str(response.url),
             )
         except Exception as error:
             if self._log_errors:
                 LOGGER.error(error)
 
-            return Response(status=0, reason=repr(error), ok=False, text="", url="")
+            return Response(status=0, reason=repr(error), ok=False, text="", url="", content=b"")
