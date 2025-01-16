@@ -7,7 +7,14 @@ from mure.models import Request, Response
 def test_memory_cache():
     cache = MemoryCache()
     request = Request("GET", "https://httpbin.org/get")
-    response = Response(ok=True, status=200, reason="OK", url="https://httpbin.org/get", text="")
+    response = Response(
+        ok=True,
+        status=200,
+        reason="OK",
+        url="https://httpbin.org/get",
+        text="",
+        content=b"",
+    )
 
     assert not cache.has(request)
     assert cache.get(request) is None
@@ -26,7 +33,14 @@ def test_disk_cache(tmp_path: Path):
 
     assert path.exists()
     request = Request("GET", "https://httpbin.org/get")
-    response = Response(ok=True, status=200, reason="OK", url="https://httpbin.org/get", text="")
+    response = Response(
+        ok=True,
+        status=200,
+        reason="OK",
+        url="https://httpbin.org/get",
+        text="",
+        content=b"",
+    )
 
     assert not cache.has(request)
     assert cache.get(request) is None
