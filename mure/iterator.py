@@ -1,14 +1,14 @@
 import asyncio
 import contextlib
-import os
-from asyncio import AbstractEventLoop, Event, Lock, PriorityQueue
+from asyncio import AbstractEventLoop, Event, PriorityQueue
 from collections.abc import AsyncGenerator, Iterator
 from typing import Self
 
 import chardet
+from hishel import AsyncCacheClient
 from httpx import AsyncClient
 
-from mure.cache import Cache
+from mure.cache import Cache, CacheController, get_storage
 from mure.logging import Logger
 from mure.models import Request, Response
 
@@ -40,10 +40,18 @@ class ResponseIterator(Iterator[Response]):
         self.num_requests = len(requests)
         self.pending = len(requests)
         self.batch_size = batch_size
-        self.cache = cache
 
-        self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
-        self._lock = Lock()
+        self._client = (
+            AsyncClient(follow_redirects=True, http2=True)
+            if cache is None
+            else AsyncCacheClient(
+                follow_redirects=True,
+                http2=True,
+                storage=get_storage(cache),
+                controller=CacheController(),
+            )
+        )
+        self._log_errors = True  # bool(os.environ.get("MURE_LOG_ERRORS"))
         self._queue = PriorityQueue()
         self._events = [Event() for _ in requests]
         self._tasks = {}
@@ -157,21 +165,7 @@ class ResponseIterator(Iterator[Response]):
         """
         LOGGER.debug(f"Started {priority}")
 
-        # if cache is given and has response for the request, use it
-        if self.cache and self.cache.has(request):
-            LOGGER.debug(f"Found response {priority} in cache")
-            async with self._lock:
-                response = self.cache.get(request)
-            LOGGER.debug(f"Used response {priority} from cache")
-        else:
-            response = await self._asend_request(session, request)
-
-            # save response to cache
-            if self.cache:
-                LOGGER.debug(f"Saving response {priority} in cache")
-                async with self._lock:
-                    self.cache.set(request, response)
-                LOGGER.debug(f"Saved response {priority} in cache")
+        response = await self._asend_request(session, request)
 
         # put response in the queue
         await self._queue.put((priority, response))
@@ -211,7 +205,7 @@ class ResponseIterator(Iterator[Response]):
             The server's response.
         """
         try:
-            async with AsyncClient(follow_redirects=True, http2=True) as session:
+            async with self._client as session:
                 # schedule tasks for fetching responses concurrently
                 tasks = self._schedule_tasks(session, loop)
                 while len(self._tasks) < self.batch_size:

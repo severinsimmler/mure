@@ -1,120 +1,52 @@
-import shelve
-from abc import ABC, abstractmethod
-from pathlib import Path
+from enum import StrEnum
 
-from mure.logging import Logger
-from mure.models import Request, Response
-
-LOGGER = Logger(__name__)
-
-
-class Cache(ABC):
-    """Abstract class for a cache to store responses."""
-
-    @abstractmethod
-    def has(self, request: Request) -> bool:
-        """Check if a request (and its corresponding response) is in the cache.
-
-        Parameters
-        ----------
-        request : Request
-            Request to check if it's in the cache.
-
-        Returns
-        -------
-        bool
-            True if the request is in the cache; otherwise, False.
-        """
-
-    @abstractmethod
-    def get(self, request: Request) -> Response | None:
-        """Get the response for the specified request from the cache.
-
-        Parameters
-        ----------
-        request : Request
-            Request to get response from the cache.
-
-        Returns
-        -------
-        Response | None
-            Response from the cache or None if the request is not in the cache.
-        """
-
-    @abstractmethod
-    def set(self, request: Request, response: Response):
-        """Save a request and its response to the cache.
-
-        Parameters
-        ----------
-        request : Request
-            Request to save to the cache.
-        response : Response
-            Response to save to the cache.
-        """
+from hishel import (
+    HEURISTICALLY_CACHEABLE_STATUS_CODES,
+    AsyncBaseStorage,
+    AsyncFileStorage,
+    AsyncInMemoryStorage,
+    AsyncSQLiteStorage,
+    Controller,
+)
 
 
-class MemoryCache(Cache):
-    """Simple in-memory cache."""
+class Cache(StrEnum):
+    """Available cache backends."""
+
+    FILE = "FILE"
+    IN_MEMORY = "IN_MEMORY"
+    SQLITE = "SQLITE"
+
+
+class CacheController(Controller):
+    """Cache controller for HTTP requests."""
 
     def __init__(self):
-        self._cache = {}
-
-    def has(self, request: Request) -> bool:
-        """Check if a request (and its corresponding response) is in the cache.
-
-        Parameters
-        ----------
-        request : Request
-            Request to check if it's in the cache.
-
-        Returns
-        -------
-        bool
-            True if the request is in the cache; otherwise, False.
-        """
-        return request.id in self._cache
-
-    def get(self, request: Request) -> Response | None:
-        """Get the response for the specified request from the cache.
-
-        Parameters
-        ----------
-        request : Request
-            Request to get response from the cache.
-
-        Returns
-        -------
-        Response | None
-            Response from the cache or None if the request is not in the cache.
-        """
-        return self._cache.get(request.id)
-
-    def set(self, request: Request, response: Response):
-        """Save a request and its response to the cache.
-
-        Parameters
-        ----------
-        request : Request
-            Request to save to the cache.
-        response : Response
-            Response to save to the cache.
-        """
-        self._cache[request.id] = response
+        super().__init__(
+            cacheable_methods=["GET", "POST"],
+            force_cache=True,
+            allow_heuristics=True,
+            cacheable_status_codes=list(HEURISTICALLY_CACHEABLE_STATUS_CODES),
+        )
 
 
-class DiskCache(MemoryCache):
-    """Simple on-disk cache."""
+def get_storage(cache: Cache) -> AsyncBaseStorage:
+    """Get storage backend based on the cache type.
 
-    def __init__(self, path: Path = Path("mure-cache.shelve")):
-        super().__init__()
+    Parameters
+    ----------
+    cache : Cache
+        Cache type.
 
-        self.path = path.resolve()
-        if self.path.exists():
-            LOGGER.warning(f"Cache ({self.path}) already exists")
-
-        self._cache = shelve.open(str(self.path))  # noqa SIM115
-
-    def __del__(self):
-        """Close the cache."""
-        self._cache.close()
+    Returns
+    -------
+    AsyncBaseStorage
+        Storage backend.
+    """
+    match cache:
+        case Cache.FILE:
+            return AsyncFileStorage()
+        case Cache.IN_MEMORY:
+            return AsyncInMemoryStorage()
+        case Cache.SQLITE:
+            return AsyncSQLiteStorage()
