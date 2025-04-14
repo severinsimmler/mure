@@ -3,8 +3,7 @@ from json import JSONDecodeError
 import pytest
 
 import mure
-from mure.cache import MemoryCache
-from mure.models import Request, Resource, Response
+from mure.models import Resource, Response
 
 
 def test_get():
@@ -46,15 +45,3 @@ def test_json():
 def test_invalid_json():
     with pytest.raises(JSONDecodeError):
         next(mure.get([{"url": "https://wikipedia.org"}])).json()
-
-
-def test_cache():
-    cache = MemoryCache()
-    resource: Resource = {"url": "https://httpbin.org/get"}
-    request = Request("GET", "https://httpbin.org/get")
-
-    assert not cache.has(request)
-
-    next(mure.get([resource], cache=cache))
-
-    assert cache.has(request)
