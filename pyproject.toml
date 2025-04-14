@@ -1,24 +1,29 @@
-[tool.poetry]
+[project]
 name = "mure"
 version = "1.5.0"
 description = "Perform multiple HTTP requests concurrently – without worrying about async/await."
-authors = ["Severin Simmler <s.simmler@snapaddy.com>"]
+authors = [{ name = "Severin Simmler", email = "s.simmler@snapaddy.com" }]
+requires-python = "~=3.11"
 readme = "README.md"
+dependencies = [
+    "chardet>=5.2.0",
+    "httpx[http2]>=0.28.1",
+]
 
-[tool.poetry.dependencies]
-python = "^3.11"
-chardet = "^5.2.0"
-httpx = { version = "^0.28.1", extras = ["http2"] }
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "pre-commit>=4.2.0",
+    "ruff>=0.11.5",
+]
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.0.1"
-pre-commit = "^4.0.0"
-ruff = "^0.9.1"
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.ruff]
 line-length = 99
 extend-include = ["*.ipynb"]
-target-version = "py311"
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = [
@@ -87,7 +92,3 @@ ignore = [
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
