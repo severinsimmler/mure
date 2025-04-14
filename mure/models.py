@@ -1,7 +1,5 @@
 import json
 from collections.abc import Mapping
-from functools import cached_property
-from hashlib import blake2b
 from typing import Any, Literal, NotRequired, TypedDict
 
 # supported http methods
@@ -65,30 +63,6 @@ class Request:
     def __repr__(self) -> str:
         """Return the string representation of the request."""
         return f"<Request({self.method}, {self.url})>"
-
-    @cached_property
-    def id(self) -> str:
-        """Return the unique identifier of the request.
-
-        Returns
-        -------
-        str
-            Unique identifier of the request.
-        """
-        components: list[str] = [
-            self.method,
-            self.url,
-            json.dumps(self.params, sort_keys=True),
-            json.dumps(self.json, sort_keys=True),
-            json.dumps(self.data, sort_keys=True),
-        ]
-
-        # hash the components to generate a unique identifier
-        key = blake2b(digest_size=16)
-        for component in components:
-            key.update(component.encode("utf-8"))
-
-        return key.hexdigest()
 
 
 class Response:
