@@ -131,17 +131,21 @@ httpx.UnsupportedProtocol: Request URL is missing an 'http://' or 'https://' pro
 
 ### Caching
 
-You can cache responses either in-memory (`MemoryCache`) or on your disk (`DiskCache`) to avoid requesting the same resources over and over again:
+You can enable caching (powered by [`hishel`](https://hishel.com/)) to avoid requesting the same resources over and over again:
 
 ```python
 >>> import mure
->>> from mure.cache import DiskCache
->>> cache = DiskCache()
+>>> from mure.cache import Cache
 >>> resources = [
 ...     {"url": "https://httpbin.org/post"},
 ...     {"url": "https://httpbin.org/post", "json": {"foo": "bar"}},
+...     {"url": "https://httpbin.org/post"},
 ... ]
->>> responses = mure.post(resources, cache=cache)
+>>> responses = mure.post(resources, cache=Cache.FILE)
 ```
 
-`MemoryCache` holds requests and corresponding responses in a simple dictionary in memory, `DiskCache` is serializing to disk using Python's `shelve` module from the standard library.
+This will make only two requests and use the hit from the cache for the last resource. Currently, three types of caches are supported:
+
+- `Cache.IN_MEMORY` will hold it in memory
+- `Cache.FILE` will store reponses on-disk in a folder `.cache`
+- `Cache.SQLITE` will store responses in a SQLite database
