@@ -17,6 +17,18 @@ wheels = [
 ]
 
 [[package]]
+name = "anysqlite"
+version = "0.0.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0f/4b/cd5d66b9f87e773bc71344a368b9472987e33514e6627e28342b9c3e7c43/anysqlite-0.0.5.tar.gz", hash = "sha256:9dfcf87baf6b93426ad1d9118088c41dbf24ef01b445eea4a5d486bac2755cce", size = 3432 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0b/31/349eae2bc9d9331dd8951684cf94528d91efaa71129dc30822ac111dfc66/anysqlite-0.0.5-py3-none-any.whl", hash = "sha256:cb345dc4f76f6b37f768d7a0b3e9cf5c700dfcb7a6356af8ab46a11f666edbe7", size = 3907 },
+]
+
+[[package]]
 name = "certifi"
 version = "2024.12.14"
 source = { registry = "https://pypi.org/simple" }
@@ -90,6 +102,23 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/2a/32/fec683ddd10629ea4ea46d206752a95a2d8a48c22521edd70b142488efe1/h2-4.1.0.tar.gz", hash = "sha256:a83aca08fbe7aacb79fec788c9c0bac936343560ed9ec18b82a13a12c28d2abb", size = 2145593 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2a/e5/db6d438da759efbb488c4f3fbdab7764492ff3c3f953132efa6b9f0e9e53/h2-4.1.0-py3-none-any.whl", hash = "sha256:03a46bcf682256c95b5fd9e9a99c1323584c3eec6440d379b9903d709476bc6d", size = 57488 },
+]
+
+[[package]]
+name = "hishel"
+version = "0.1.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a8/3d/f754187b9703a8db211e80cef0fc4e27e0ab2edbeacccf1257c096dade48/hishel-0.1.2.tar.gz", hash = "sha256:6643450bfb1cfa2ecd6002769f6f5069d0d048c9c1f1e29a98a48302d5875092", size = 36240 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/11/23/a33edb262bb7732a528595b008c7b3640bea4be7e7417cbaff8f978ead72/hishel-0.1.2-py3-none-any.whl", hash = "sha256:802b4e446017f4867efdb26d3417670991ad1b4826d24331110871fe8957b5d0", size = 42237 },
+]
+
+[package.optional-dependencies]
+sqlite = [
+    { name = "anysqlite" },
 ]
 
 [[package]]
@@ -172,11 +201,17 @@ wheels = [
 
 [[package]]
 name = "mure"
-version = "1.5.0"
+version = "2.0.0b1"
 source = { editable = "." }
 dependencies = [
     { name = "chardet" },
+    { name = "hishel" },
     { name = "httpx", extra = ["http2"] },
+]
+
+[package.optional-dependencies]
+sqlite = [
+    { name = "hishel", extra = ["sqlite"] },
 ]
 
 [package.dev-dependencies]
@@ -189,8 +224,11 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "chardet", specifier = ">=5.2.0" },
+    { name = "hishel", specifier = ">=0.1.2" },
+    { name = "hishel", extras = ["sqlite"], marker = "extra == 'sqlite'", specifier = ">=0.1.2" },
     { name = "httpx", extras = ["http2"], specifier = ">=0.28.1" },
 ]
+provides-extras = ["sqlite"]
 
 [package.metadata.requires-dev]
 dev = [

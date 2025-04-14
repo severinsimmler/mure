@@ -1,6 +1,6 @@
 [project]
 name = "mure"
-version = "2.0.0"
+version = "2.0.0b1"
 description = "Perform multiple HTTP requests concurrently – without worrying about async/await."
 authors = [{ name = "Severin Simmler", email = "s.simmler@snapaddy.com" }]
 requires-python = "~=3.11"
@@ -8,6 +8,12 @@ readme = "README.md"
 dependencies = [
     "chardet>=5.2.0",
     "httpx[http2]>=0.28.1",
+    "hishel>=0.1.2",
+]
+
+[project.optional-dependencies]
+sqlite = [
+    "hishel[sqlite]>=0.1.2",
 ]
 
 [dependency-groups]
