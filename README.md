@@ -148,4 +148,4 @@ This will make only two requests and use the hit from the cache for the last res
 
 - `Cache.IN_MEMORY` will hold it in memory
 - `Cache.FILE` will store reponses on-disk in a folder `.cache`
-- `Cache.SQLITE` will store responses in a SQLite database
+- `Cache.SQLITE` will store responses in a SQLite database `.hishel.sqlite`
