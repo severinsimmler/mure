@@ -42,16 +42,7 @@ class ResponseIterator(Iterator[Response]):
         self.pending = len(requests)
         self.batch_size = batch_size
 
-        self._client = (
-            AsyncClient(follow_redirects=True, http2=True)
-            if cache is None
-            else AsyncCacheClient(
-                follow_redirects=True,
-                http2=True,
-                storage=get_storage(cache),
-                controller=CacheController(),
-            )
-        )
+        self._cache = cache
         self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
         self._queue = PriorityQueue()
         self._events = [Event() for _ in requests]
@@ -206,7 +197,16 @@ class ResponseIterator(Iterator[Response]):
             The server's response.
         """
         try:
-            async with self._client as session:
+            async with (
+                AsyncClient(follow_redirects=True, http2=True)
+                if self._cache is None
+                else AsyncCacheClient(
+                    follow_redirects=True,
+                    http2=True,
+                    storage=get_storage(self._cache),
+                    controller=CacheController(),
+                )
+            ) as session:
                 # schedule tasks for fetching responses concurrently
                 tasks = self._schedule_tasks(session, loop)
                 while len(self._tasks) < self.batch_size:
