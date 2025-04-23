@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import os
 from asyncio import AbstractEventLoop, Event, PriorityQueue
 from collections.abc import AsyncGenerator, Iterator
 from typing import Self
@@ -51,7 +52,7 @@ class ResponseIterator(Iterator[Response]):
                 controller=CacheController(),
             )
         )
-        self._log_errors = True  # bool(os.environ.get("MURE_LOG_ERRORS"))
+        self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
         self._queue = PriorityQueue()
         self._events = [Event() for _ in requests]
         self._tasks = {}
