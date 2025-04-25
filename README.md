@@ -149,3 +149,17 @@ This will make only two requests and use the hit from the cache for the last res
 - `Cache.IN_MEMORY` will hold it in memory
 - `Cache.FILE` will store reponses on-disk in a folder `.cache`
 - `Cache.SQLITE` will store responses in a SQLite database `.hishel.sqlite`
+
+### `OSError: [Errno 24] Too many open files`
+
+This error typically occurs when your process tries to open more file descriptors (often network sockets in this context) than the operating system allows per process.
+
+Each concurrent request within the `batch_size` potentially opens a socket. If `batch_size` is large or requests are slow, you can hit the system's limit.
+
+You can either increase the limit temporarily for the current shell session:
+
+```
+$ ulimit -n 65536
+```
+
+or reduce the `batch_size`.
