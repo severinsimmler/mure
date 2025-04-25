@@ -26,7 +26,7 @@ class CacheController(Controller):
             cacheable_methods=["GET", "POST"],
             force_cache=True,
             allow_heuristics=True,
-            cacheable_status_codes=[*HEURISTICALLY_CACHEABLE_STATUS_CODES, 0],
+            cacheable_status_codes=[*HEURISTICALLY_CACHEABLE_STATUS_CODES, 0, 500],
         )
 
 
