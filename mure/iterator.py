@@ -6,7 +6,9 @@ from collections.abc import AsyncGenerator, Iterator
 from typing import Self
 
 import chardet
+import httpcore
 from hishel import AsyncCacheClient
+from hishel._utils import generate_key
 from httpx import AsyncClient
 
 from mure.cache import Cache, CacheController, get_storage
@@ -42,7 +44,7 @@ class ResponseIterator(Iterator[Response]):
         self.pending = len(requests)
         self.batch_size = batch_size
 
-        self._cache = cache
+        self._storage = get_storage(cache) if cache else None
         self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
         self._queue = PriorityQueue()
         self._events = [Event() for _ in requests]
@@ -199,11 +201,11 @@ class ResponseIterator(Iterator[Response]):
         try:
             async with (
                 AsyncClient(follow_redirects=True, http2=True)
-                if self._cache is None
+                if self._storage is None
                 else AsyncCacheClient(
                     follow_redirects=True,
                     http2=True,
-                    storage=get_storage(self._cache),
+                    storage=self._storage,
                     controller=CacheController(),
                 )
             ) as session:
@@ -251,21 +253,26 @@ class ResponseIterator(Iterator[Response]):
         Response
             The server's response.
         """
+        _request = session.build_request(
+            method=request.method,
+            url=request.url,
+            data=request.data,
+            json=request.json,
+            params=request.params,
+            headers=request.headers,
+            timeout=request.timeout,
+        )
+
         try:
             LOGGER.debug("Sending request")
-            response = await session.request(
-                request.method,
-                request.url,
-                headers=request.headers,
-                params=request.params,
-                data=request.data,
-                json=request.json,
-                timeout=request.timeout,
-            )
+            # perform the request
+            response = await session.send(_request, follow_redirects=session.follow_redirects)
 
+            # read the response content
             content = await response.aread()
 
             try:
+                # try to decode the content using the response encoding
                 text = content.decode(response.encoding or "utf-8", errors="replace")
             except (LookupError, TypeError):
                 # LookupError is raised if the encoding was not found which could
@@ -286,5 +293,25 @@ class ResponseIterator(Iterator[Response]):
         except Exception as error:
             if self._log_errors:
                 LOGGER.error(error)
+
+            if self._storage is not None:
+                cached_request = httpcore.Request(
+                    method=_request.method,
+                    url=str(_request.url),
+                    headers=_request.headers,
+                    content=_request.content,
+                )
+                cached_response = httpcore.Response(
+                    status=0,
+                    content=b"",
+                    extensions={"reason_phrase": repr(error).encode("utf-8")},
+                )
+                cached_response.read()
+
+                await self._storage.store(
+                    key=generate_key(cached_request, _request.content),
+                    request=cached_request,
+                    response=cached_response,
+                )
 
             return Response(status=0, reason=repr(error), ok=False, text="", url="", content=b"")

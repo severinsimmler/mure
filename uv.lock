@@ -201,11 +201,12 @@ wheels = [
 
 [[package]]
 name = "mure"
-version = "2.0.0b3"
+version = "2.0.0b5"
 source = { editable = "." }
 dependencies = [
     { name = "chardet" },
     { name = "hishel" },
+    { name = "httpcore" },
     { name = "httpx", extra = ["http2"] },
 ]
 
@@ -226,6 +227,7 @@ requires-dist = [
     { name = "chardet", specifier = ">=5.2.0" },
     { name = "hishel", specifier = ">=0.1.2" },
     { name = "hishel", extras = ["sqlite"], marker = "extra == 'sqlite'", specifier = ">=0.1.2" },
+    { name = "httpcore", specifier = ">=1.0.8" },
     { name = "httpx", extras = ["http2"], specifier = ">=0.28.1" },
 ]
 provides-extras = ["sqlite"]
