@@ -1,7 +1,7 @@
 import asyncio
 import contextlib
 import os
-from asyncio import AbstractEventLoop, Event, PriorityQueue
+from asyncio import AbstractEventLoop, Event, PriorityQueue, Task
 from collections.abc import AsyncGenerator, Iterator
 from typing import Self
 
@@ -42,13 +42,13 @@ class ResponseIterator(Iterator[Response]):
         self.requests = requests
         self.num_requests = len(requests)
         self.pending = len(requests)
-        self.batch_size = batch_size
+        self.batch_size = batch_size or 100
 
         self._storage = get_storage(cache) if cache else None
         self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
         self._queue = PriorityQueue()
         self._events = [Event() for _ in requests]
-        self._tasks = {}
+        self._tasks: dict[int, Task] = {}
         self._responses = self._fetch_responses()
 
     def __repr__(self) -> str:
@@ -103,18 +103,20 @@ class ResponseIterator(Iterator[Response]):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-        agenerator = self._agenerator_wrapper(loop)
+        try:
+            agenerator = self._agenerator_wrapper(loop)
 
-        # run the event loop until a response is available and yield it
-        while True:
-            try:
-                yield loop.run_until_complete(anext(agenerator))
-            except StopAsyncIteration:
-                break
-
-        # close the event loop and remove it from the current context
-        loop.close()
-        asyncio.set_event_loop(None)
+            while True:
+                try:
+                    yield loop.run_until_complete(anext(agenerator))
+                except StopAsyncIteration:
+                    break
+        finally:
+            # Make sure to clean up any pending tasks before closing the loop
+            loop.run_until_complete(self._cleanup_tasks())
+            loop.run_until_complete(loop.shutdown_asyncgens())
+            loop.close()
+            asyncio.set_event_loop(None)
 
     def _schedule_tasks(self, session: AsyncClient, loop: AbstractEventLoop):
         """Schedule tasks for fetching responses concurrently.
@@ -136,6 +138,14 @@ class ResponseIterator(Iterator[Response]):
 
             self._tasks[priority] = loop.create_task(coroutine)
             yield
+
+    async def _cleanup_tasks(self):
+        """Clean up any running tasks."""
+        for task in self._tasks.values():
+            if not task.done():
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
 
     async def _aprocess_request(
         self,
