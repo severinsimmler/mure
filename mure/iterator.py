@@ -112,10 +112,9 @@ class ResponseIterator(Iterator[Response]):
                 except StopAsyncIteration:
                     break
         finally:
-            # Make sure to clean up any pending tasks before closing the loop
-            loop.run_until_complete(self._cleanup_tasks())
-            loop.run_until_complete(loop.shutdown_asyncgens())
-            loop.close()
+            if not loop.is_closed():
+                loop.close()
+
             asyncio.set_event_loop(None)
 
     def _schedule_tasks(self, session: AsyncClient, loop: AbstractEventLoop):
@@ -141,9 +140,14 @@ class ResponseIterator(Iterator[Response]):
 
     async def _cleanup_tasks(self):
         """Clean up any running tasks."""
+        print(self._tasks)
         for task in self._tasks.values():
             if not task.done():
                 task.cancel()
+                await asyncio.sleep(0.1)
+
+        for task in self._tasks.values():
+            if not task.done():
                 with contextlib.suppress(asyncio.CancelledError):
                     await task
 
@@ -233,7 +237,6 @@ class ResponseIterator(Iterator[Response]):
 
                     # get response from the queue
                     priority, response = await self._queue.get()
-                    self._queue.task_done()
 
                     # get rid of the task that has been completed
                     self._tasks.pop(priority)
@@ -242,11 +245,18 @@ class ResponseIterator(Iterator[Response]):
                     yield response
                     self.pending -= 1
 
+                    self._queue.task_done()
+
                     with contextlib.suppress(StopIteration):
                         # schedule next task (if any left)
                         next(tasks)
         except GeneratorExit:
             return
+        finally:
+            print(self._queue.qsize())
+            print(self._tasks)
+            await self._queue.join()
+            await asyncio.sleep(0.5)
 
     async def _asend_request(self, session: AsyncClient, request: Request) -> Response:
         """Perform a HTTP request.
