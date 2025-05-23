@@ -6,7 +6,7 @@ import mure
 from mure.models import Resource, Response
 
 
-@pytest.xfail(reason="httpbin.org is sometimes down")
+@pytest.mark.xfail(reason="httpbin.org is sometimes down")
 def test_get():
     resources: list[Resource] = [
         {"url": "https://httpbin.org/get"},
@@ -22,7 +22,7 @@ def test_get():
     assert not responses[2].ok
 
 
-@pytest.xfail(reason="httpbin.org is sometimes down")
+@pytest.mark.xfail(reason="httpbin.org is sometimes down")
 def test_post():
     resources: list[Resource] = [
         {"url": "https://httpbin.org/post"},
@@ -38,7 +38,7 @@ def test_post():
     assert not responses[2].ok
 
 
-@pytest.xfail(reason="httpbin.org is sometimes down")
+@pytest.mark.xfail(reason="httpbin.org is sometimes down")
 def test_json():
     response = next(mure.get([{"url": "https://httpbin.org/get"}]))
 
