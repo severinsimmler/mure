@@ -113,6 +113,12 @@ class ResponseIterator(Iterator[Response]):
                     break
         finally:
             if not loop.is_closed():
+                for task in self._tasks.values():
+                    if not task.done() and not task.cancelled():
+                        task.cancel()
+
+                # run the event loop briefly to process task cancellations
+                loop.run_until_complete(asyncio.sleep(0.5))
                 loop.close()
 
             asyncio.set_event_loop(None)
