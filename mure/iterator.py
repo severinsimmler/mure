@@ -42,7 +42,7 @@ class ResponseIterator(Iterator[Response]):
         self.requests = requests
         self.num_requests = len(requests)
         self.pending = len(requests)
-        self.batch_size = batch_size or 100
+        self.batch_size = batch_size
 
         self._storage = get_storage(cache) if cache else None
         self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
@@ -137,19 +137,6 @@ class ResponseIterator(Iterator[Response]):
 
             self._tasks[priority] = loop.create_task(coroutine)
             yield
-
-    async def _cleanup_tasks(self):
-        """Clean up any running tasks."""
-        print(self._tasks)
-        for task in self._tasks.values():
-            if not task.done():
-                task.cancel()
-                await asyncio.sleep(0.1)
-
-        for task in self._tasks.values():
-            if not task.done():
-                with contextlib.suppress(asyncio.CancelledError):
-                    await task
 
     async def _aprocess_request(
         self,
@@ -253,10 +240,8 @@ class ResponseIterator(Iterator[Response]):
         except GeneratorExit:
             return
         finally:
-            print(self._queue.qsize())
-            print(self._tasks)
-            await self._queue.join()
             await asyncio.sleep(0.5)
+            await self._queue.join()
 
     async def _asend_request(self, session: AsyncClient, request: Request) -> Response:
         """Perform a HTTP request.
@@ -318,7 +303,7 @@ class ResponseIterator(Iterator[Response]):
                 cached_request = httpcore.Request(
                     method=_request.method,
                     url=str(_request.url),
-                    headers=_request.headers,
+                    headers=_request.headers,  # type: ignore
                     content=_request.content,
                 )
                 cached_response = httpcore.Response(
