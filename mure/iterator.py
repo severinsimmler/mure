@@ -111,17 +111,27 @@ class ResponseIterator(Iterator[Response]):
                     yield loop.run_until_complete(anext(agenerator))
                 except StopAsyncIteration:
                     break
+        except GeneratorExit:
+            self._cancel_tasks()
+
+            # run the event loop briefly to process task cancellations
+            loop.run_until_complete(asyncio.sleep(0.5))
+            raise
         finally:
             if not loop.is_closed():
-                for task in self._tasks.values():
-                    if not task.done() and not task.cancelled():
-                        task.cancel()
+                self._cancel_tasks()
 
                 # run the event loop briefly to process task cancellations
                 loop.run_until_complete(asyncio.sleep(0.5))
                 loop.close()
 
             asyncio.set_event_loop(None)
+
+    def _cancel_tasks(self):
+        """Cancel all pending tasks."""
+        for task in self._tasks.values():
+            if not task.done() and not task.cancelled():
+                task.cancel()
 
     def _schedule_tasks(self, session: AsyncClient, loop: AbstractEventLoop):
         """Schedule tasks for fetching responses concurrently.
