@@ -91,6 +91,7 @@ class Response:
         url: str,
         text: str,
         content: bytes,
+        headers: Mapping[str, str],
     ):
         self.ok = ok
         self.status = status
@@ -98,6 +99,7 @@ class Response:
         self.url = url
         self.text = text
         self.content = content
+        self.headers = headers
 
     def __repr__(self) -> str:
         """Return the string representation of the response."""

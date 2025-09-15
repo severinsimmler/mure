@@ -7,6 +7,7 @@ from typing import Self
 
 import chardet
 import httpcore
+import httpx
 from hishel import AsyncCacheClient
 from hishel._utils import generate_key
 from httpx import AsyncClient
@@ -310,6 +311,7 @@ class ResponseIterator(Iterator[Response]):
                 text=text,
                 content=content,
                 url=str(response.url),
+                headers=response.headers,
             )
         except Exception as error:
             if self._log_errors:
@@ -335,4 +337,12 @@ class ResponseIterator(Iterator[Response]):
                     response=cached_response,
                 )
 
-            return Response(status=0, reason=repr(error), ok=False, text="", url="", content=b"")
+            return Response(
+                status=0,
+                reason=repr(error),
+                ok=False,
+                text="",
+                url="",
+                content=b"",
+                headers=httpx.Headers(),
+            )
