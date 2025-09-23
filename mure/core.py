@@ -1,8 +1,8 @@
 from collections.abc import Generator
 
 from mure.cache import Cache
-from mure.iterator import ResponseIterator
 from mure.models import Request, Resource, Response
+from mure.utils import fetch_responses
 
 
 def delete(
@@ -29,7 +29,7 @@ def delete(
     """
     return (
         response
-        for response in ResponseIterator(
+        for response in fetch_responses(
             [Request("DELETE", **resource) for resource in resources],
             batch_size=batch_size,
             cache=cache,
@@ -61,7 +61,7 @@ def get(
     """
     return (
         response
-        for response in ResponseIterator(
+        for response in fetch_responses(
             [Request("GET", **resource) for resource in resources],
             batch_size=batch_size,
             cache=cache,
@@ -93,7 +93,7 @@ def head(
     """
     return (
         response
-        for response in ResponseIterator(
+        for response in fetch_responses(
             [Request("HEAD", **resource) for resource in resources],
             batch_size=batch_size,
             cache=cache,
@@ -125,7 +125,7 @@ def patch(
     """
     return (
         response
-        for response in ResponseIterator(
+        for response in fetch_responses(
             [Request("PATCH", **resource) for resource in resources],
             batch_size=batch_size,
             cache=cache,
@@ -157,7 +157,7 @@ def post(
     """
     return (
         response
-        for response in ResponseIterator(
+        for response in fetch_responses(
             [Request("POST", **resource) for resource in resources],
             batch_size=batch_size,
             cache=cache,
@@ -189,7 +189,7 @@ def put(
     """
     return (
         response
-        for response in ResponseIterator(
+        for response in fetch_responses(
             [Request("PUT", **resource) for resource in resources],
             batch_size=batch_size,
             cache=cache,
