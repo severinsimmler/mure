@@ -1,6 +1,6 @@
 [project]
 name = "mure"
-version = "2.0.0"
+version = "3.0.0"
 description = "Perform multiple HTTP requests concurrently – without worrying about async/await."
 authors = [{ name = "Severin Simmler", email = "s.simmler@snapaddy.com" }]
 requires-python = ">=3.11"
@@ -13,16 +13,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-sqlite = [
-    "hishel[sqlite]>=0.1.2",
-]
+sqlite = ["hishel[sqlite]>=0.1.2"]
 
 [dependency-groups]
-dev = [
-    "pytest>=8.3.5",
-    "pre-commit>=4.2.0",
-    "ruff>=0.11.5",
-]
+dev = ["pytest>=8.3.5", "pre-commit>=4.2.0", "ruff>=0.11.5"]
 
 [build-system]
 requires = ["hatchling"]
@@ -48,7 +42,6 @@ extend-include = ["*.ipynb"]
     "D400", # First line should end with a period
     "D401", # First line should be in imperative mood
     "E501", # Line too long
-    "S101", # Use of assert detected
 ]
 
 [tool.ruff.format]
@@ -92,9 +85,7 @@ ignore = [
     "S110",   # Consider logging the exception before pass
     "S112",   # Consider logging the exception before continue
     "S105",   # Possible hardcoded password
-    "S320",   # Using lxml to parse untrusted data
     "S311",   # Standard pseudo-random generators are not suitable for cryptographic purposes
-    "S301",   # Pickle is used to serialize data
 ]
 
 [tool.ruff.lint.pydocstyle]
