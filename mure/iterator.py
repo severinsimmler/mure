@@ -102,11 +102,15 @@ class AsyncResponseIterator(AsyncIterator[Response]):
             return None
 
         try:
+            LOGGER.debug(f"Waiting for response with priority {priority}")
+
             # wait for the response to be ready...
             await self._events[priority].wait()
 
             # ...now actually get it
             _, response = await self._queue.get()
+
+            LOGGER.debug(f"Received response with priority {priority}")
 
             return response
         except Exception:
@@ -235,7 +239,11 @@ class AsyncResponseIterator(AsyncIterator[Response]):
             Resource to request.
         """
         async with self._semaphore:
+            LOGGER.debug(f"Fetching response with priority {priority}")
+
             response = await self._asend_request(session, request)
+
+            LOGGER.debug(f"Fetched response with priority {priority}")
 
         await self._queue.put((priority, response))
 
