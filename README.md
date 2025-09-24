@@ -32,17 +32,13 @@ Pass a list of dictionaries with at least a value for `url` and get a `ResponseI
 ...     {"url": "https://httpbin.org/get", "params": {"foo": "bar"}},
 ...     {"url": "invalid"},
 ... ]
->>> responses = mure.get(resources, batch_size=2)
->>> responses
-<ResponseIterator: 3/3 pending>
+>>> responses = mure.get(resources, batch_size=2)  # nothing fired yet
 >>> for resource, response in zip(resources, responses):
 ...     print(resource, "status code:", response.status)
 ...
 {'url': 'https://httpbin.org/get'} status code: 200
 {'url': 'https://httpbin.org/get', 'params': {'foo': 'bar'}} status code: 200
 {'url': 'invalid'} status code: 0
->>> responses
-<ResponseIterator: 0/3 pending>
 ```
 
 The keyword argument `batch_size` defines the number of requests to perform concurrently. The resources are requested lazy and in batches, i.e. only one batch of responses is kept in memory. Once you start accessing the first response of a batch, the next resource is requested already in the background.

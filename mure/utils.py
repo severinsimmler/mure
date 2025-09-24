@@ -31,19 +31,20 @@ def fetch_responses(
     if asyncio.events._get_running_loop() is not None:
         raise RuntimeError("This function cannot be called from a running event loop")
 
-    iterator = AsyncResponseIterator(requests, batch_size=batch_size, cache=cache)
+    responses = AsyncResponseIterator(requests, batch_size=batch_size, cache=cache)
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
     try:
         for _ in requests:
-            response = loop.run_until_complete(iterator.__anext__())
+            response = loop.run_until_complete(responses.aconsume_next_response())
 
             if response is None:
-                break
+                raise ValueError("There are inconsistencies between requests and responses")
 
             yield response
     finally:
+        loop.run_until_complete(responses.aclose())
         loop.close()
         asyncio.set_event_loop(None)

@@ -14,7 +14,6 @@ from httpcore import Response as _Response
 from httpx import AsyncClient, Headers
 
 from mure.cache import Cache, CacheController, get_storage
-from mure.consumption import Consumption
 from mure.logging import Logger
 from mure.models import Request, Response
 from mure.queue import Queue
@@ -46,11 +45,10 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         self.requests = requests
         self.num_requests = len(requests)
         self.batch_size = batch_size
-        self._consumption = Consumption(self.num_requests)
         self._storage = get_storage(cache) if cache else None
         self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
-        self._queue = Queue(self._consumption)
-        self._semaphore = Semaphore(batch_size)
+        self._queue = Queue(self.num_requests)
+        self._semaphore = Semaphore(self.batch_size)
         self._task = None
 
     def __aiter__(self) -> Self:
@@ -70,19 +68,10 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         StopAsyncIteration
             If there are no more responses to fetch.
         """
-        priority = self._consumption.next_priority()
-
-        LOGGER.debug(f"Consuming response with priority {priority}")
-
-        if priority is None:
-            raise StopAsyncIteration
-
-        response = await self._aconsume_response(priority)
+        response = await self.aconsume_next_response()
 
         if response is None:
             raise StopAsyncIteration
-
-        LOGGER.debug(f"Consumed response with priority {priority}")
 
         return response
 
@@ -97,17 +86,17 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         exc_tb: TracebackType | None,
     ):
         """Exit async context."""
-        await self._aclose()
+        await self.aclose()
 
-    async def _aclose(self):
+    async def aclose(self):
         """Clean up resources."""
         if self._task and not self._task.done():
             self._task.cancel()
             with contextlib.suppress(CancelledError):
                 await self._task
 
-    async def _aconsume_response(self, priority: int) -> Response | None:
-        """Consume the response with the given priority.
+    async def aconsume_next_response(self) -> Response | None:
+        """Consume the next response.
 
         Parameters
         ----------
@@ -117,7 +106,7 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         Returns
         -------
         Response | None
-            Response with given priority, or None if there are no more responses to consume.
+            Next response, or None if there are no more responses to consume.
         """
         if self._task is None:
             self._task = asyncio.create_task(self._afetch_responses())
@@ -125,7 +114,7 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         if self._task.done() and self._queue.empty():
             return None
 
-        return await self._queue.get(priority)
+        return await self._queue.get_next()
 
     async def _asend_request(self, session: AsyncClient, request: Request) -> Response:
         """Perform an HTTP request.
@@ -231,11 +220,11 @@ class AsyncResponseIterator(AsyncIterator[Response]):
             Resource to request.
         """
         async with self._semaphore:
-            LOGGER.debug(f"Fetching response with priority {priority}")
+            LOGGER.debug(f"Start priority {priority}")
 
             response = await self._asend_request(session, request)
 
-            LOGGER.debug(f"Fetched response with priority {priority}")
+            LOGGER.debug(f"Stop priority {priority}")
 
         await self._queue.put(priority, response)
 
