@@ -47,7 +47,7 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         self.num_requests = len(requests)
         self.batch_size = batch_size
         self._consumption = Consumption(self.num_requests)
-        self._storage = get_storage(cache) if cache else None  #
+        self._storage = get_storage(cache) if cache else None
         self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
         self._queue = Queue(self._consumption)
         self._semaphore = Semaphore(batch_size)
