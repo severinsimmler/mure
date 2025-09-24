@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import os
 from asyncio import CancelledError, Event, PriorityQueue, Semaphore
 from collections.abc import AsyncIterator
 from types import TracebackType
@@ -45,7 +46,8 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         self.pending = len(requests)
         self.consumed = 0
         self.batch_size = batch_size
-        self._storage = get_storage(cache) if cache else None
+        self._storage = get_storage(cache) if cache else None  #
+        self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
         self._queue = PriorityQueue()
         self._semaphore = Semaphore(batch_size)
         self._events = [Event() for _ in requests]
@@ -191,6 +193,9 @@ class AsyncResponseIterator(AsyncIterator[Response]):
                 headers=response.headers,
             )
         except Exception as error:
+            if self._log_errors:
+                LOGGER.error(error)
+
             if self._storage is not None:
                 cached_request = _Request(
                     method=_request.method,
