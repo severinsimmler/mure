@@ -22,7 +22,7 @@ pip install mure
 
 ## Usage
 
-Pass a list of dictionaries with at least a value for `url` and get a `ResponseIterator` with the corresponding responses. The first request is fired as soon as you access the first response:
+Pass a list of dictionaries with at least a value for `url` and get a generator with the corresponding responses. The first request is fired as soon as you access the first response:
 
 ```python
 >>> import mure
@@ -41,23 +41,7 @@ Pass a list of dictionaries with at least a value for `url` and get a `ResponseI
 {'url': 'invalid'} status code: 0
 ```
 
-The keyword argument `batch_size` defines the number of requests to perform concurrently. The resources are requested lazy and in batches, i.e. only one batch of responses is kept in memory. Once you start accessing the first response of a batch, the next resource is requested already in the background.
-
-For example, if you have four resources, set `batch_size` to `2` and execute:
-
-```python
->>> next(responses)
-```
-
-the first two resources are requested concurrently and block until both of the responses are available (i.e. if resource 1 takes 1 second and resource 2 takes 10 seconds, it blocks 10 seconds although resource 1 is already available after 1 second). Before the response of resource 1 is yielded, the next batch of resources (i.e. 3 and 4) is already requested in the background.
-
-Executing `next()` a second time:
-
-```python
->>> next(responses)
-```
-
-will be super fast, because the response of resource 2 is already available (1 and 2 were in the same batch).
+The number of requests fired at the same time will never exceed `batch_size` – this is protected by a semaphore.
 
 ### HTTP Methods
 
@@ -145,3 +129,5 @@ This will make only two requests and use the hit from the cache for the last res
 - `Cache.IN_MEMORY` will hold it in memory
 - `Cache.FILE` will store reponses on-disk in a folder `.cache`
 - `Cache.SQLITE` will store responses in a SQLite database `.hishel.sqlite`
+
+Note that you have to install [the SQLite extras](https://github.com/severinsimmler/mure/blob/master/pyproject.toml#L15-L16) if you want to use `Cache.SQLITE`.
