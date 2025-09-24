@@ -72,6 +72,8 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         """
         priority = self._consumption.next_priority()
 
+        LOGGER.debug(f"Consuming response with priority {priority}")
+
         if priority is None:
             raise StopAsyncIteration
 
@@ -79,6 +81,8 @@ class AsyncResponseIterator(AsyncIterator[Response]):
 
         if response is None:
             raise StopAsyncIteration
+
+        LOGGER.debug(f"Consumed response with priority {priority}")
 
         return response
 
