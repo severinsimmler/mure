@@ -10,7 +10,7 @@ def delete(
     *,
     batch_size: int = 5,
     cache: Cache | None = None,
-) -> Generator[Response, None, None]:
+) -> Generator[Response]:
     """Perform a DELETE request for each resource.
 
     Parameters
@@ -24,7 +24,7 @@ def delete(
 
     Returns
     -------
-    Generator[Response, None, None]
+    Generator[Response]
         The server's responses for each resource.
     """
     return (
@@ -42,7 +42,7 @@ def get(
     *,
     batch_size: int = 5,
     cache: Cache | None = None,
-) -> Generator[Response, None, None]:
+) -> Generator[Response]:
     """Perform a GET request for each resource.
 
     Parameters
@@ -56,7 +56,7 @@ def get(
 
     Returns
     -------
-    Generator[Response, None, None]
+    Generator[Response]
         The server's responses for each resource.
     """
     return (
@@ -74,7 +74,7 @@ def head(
     *,
     batch_size: int = 5,
     cache: Cache | None = None,
-) -> Generator[Response, None, None]:
+) -> Generator[Response]:
     """Perform a HEAD request for each resource.
 
     Parameters
@@ -88,7 +88,7 @@ def head(
 
     Returns
     -------
-    Generator[Response, None, None]
+    Generator[Response]
         The server's responses for each resource.
     """
     return (
@@ -106,7 +106,7 @@ def patch(
     *,
     batch_size: int = 5,
     cache: Cache | None = None,
-) -> Generator[Response, None, None]:
+) -> Generator[Response]:
     """Perform a PATCH request for each resource.
 
     Parameters
@@ -120,7 +120,7 @@ def patch(
 
     Returns
     -------
-    Generator[Response, None, None]
+    Generator[Response]
         The server's responses for each resource.
     """
     return (
@@ -138,7 +138,7 @@ def post(
     *,
     batch_size: int = 5,
     cache: Cache | None = None,
-) -> Generator[Response, None, None]:
+) -> Generator[Response]:
     """Perform a POST request for each resource.
 
     Parameters
@@ -152,7 +152,7 @@ def post(
 
     Returns
     -------
-    Generator[Response, None, None]
+    Generator[Response]
         The server's responses for each resource.
     """
     return (
@@ -170,7 +170,7 @@ def put(
     *,
     batch_size: int = 5,
     cache: Cache | None = None,
-) -> Generator[Response, None, None]:
+) -> Generator[Response]:
     """Perform a PUT request for each resource.
 
     Parameters
@@ -184,7 +184,7 @@ def put(
 
     Returns
     -------
-    Generator[Response, None, None]
+    Generator[Response]
         The server's responses for each resource.
     """
     return (
