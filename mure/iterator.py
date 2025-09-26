@@ -116,7 +116,12 @@ class AsyncResponseIterator(AsyncIterator[Response]):
 
         return await self._queue.get_next()
 
-    async def _asend_request(self, session: AsyncClient, request: Request) -> Response:
+    async def _asend_request(
+        self,
+        session: AsyncClient,
+        request: Request,
+        priority: int,
+    ) -> Response:
         """Perform an HTTP request.
 
         Parameters
@@ -125,6 +130,8 @@ class AsyncResponseIterator(AsyncIterator[Response]):
             HTTP session to use.
         request : Request
             Resource to request.
+        priority : int
+            Priority of the request.
 
         Returns
         -------
@@ -142,8 +149,13 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         )
 
         try:
-            # send the request...
-            response = await session.send(_request, follow_redirects=session.follow_redirects)
+            async with self._semaphore:
+                LOGGER.debug(f"Start firing request with priority {priority}")
+
+                # send the request...
+                response = await session.send(_request, follow_redirects=session.follow_redirects)
+
+                LOGGER.debug(f"Finished firing request with priority {priority}")
 
             # ...and read the content
             content = await response.aread()
@@ -208,7 +220,7 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         priority: int,
         request: Request,
     ):
-        """Fetch a single response with semaphore control.
+        """Fetch a single response.
 
         Parameters
         ----------
@@ -219,12 +231,7 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         request : Request
             Resource to request.
         """
-        async with self._semaphore:
-            LOGGER.debug(f"Start priority {priority}")
-
-            response = await self._asend_request(session, request)
-
-            LOGGER.debug(f"Finish priority {priority}")
+        response = await self._asend_request(session, request, priority)
 
         await self._queue.put(priority, response)
 
