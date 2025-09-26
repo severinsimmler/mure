@@ -11,14 +11,14 @@ class Consumption:
 
     @property
     def is_done(self) -> bool:
-        """Check if all items have been consumed.
+        """Check if all items have been consumed and none are scheduled.
 
         Returns
         -------
         bool
-            True if all items have been consumed, False otherwise.
+            True if all items have been consumed and none are scheduled, False otherwise.
         """
-        return len(self.consumables) == 0
+        return len(self.consumables) == 0 and len(self.scheduled) == 0
 
     async def anext_priority(self) -> int | None:
         """Get the next priority to consume.
@@ -29,12 +29,12 @@ class Consumption:
             The next priority to consume, or None if all have been consumed.
         """
         async with self._lock:
-            consumables = {c for c in self.consumables if c not in self.scheduled}
+            unscheduled = self.consumables - self.scheduled
 
-            if not consumables:
+            if not unscheduled:
                 return None
 
-            priority = min(consumables)
+            priority = min(unscheduled)
 
             self.scheduled.add(priority)
 

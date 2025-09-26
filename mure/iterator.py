@@ -224,7 +224,7 @@ class AsyncResponseIterator(AsyncIterator[Response]):
 
             response = await self._asend_request(session, request)
 
-            LOGGER.debug(f"Stop priority {priority}")
+            LOGGER.debug(f"Finish priority {priority}")
 
         await self._queue.put(priority, response)
 
