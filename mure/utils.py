@@ -1,7 +1,6 @@
 import asyncio
 from collections.abc import Generator
 
-from mure.cache import Cache
 from mure.iterator import AsyncResponseIterator
 from mure.models import Request, Response
 
@@ -10,7 +9,7 @@ def fetch_responses(
     requests: list[Request],
     *,
     batch_size: int = 5,
-    cache: Cache | None = None,
+    cache: bool = False,
 ) -> Generator[Response]:
     """Fetch responses for a list of requests.
 
@@ -20,8 +19,8 @@ def fetch_responses(
         Resources to request.
     batch_size : int
         Number of items to request per batch concurrently, by default 5.
-    cache : Cache | None, optional
-        Cache to use for storing responses, by default None.
+    cache : bool, optional
+        Whether to use a cache for storing responses, by default False.
 
     Yields
     ------
@@ -37,6 +36,10 @@ def fetch_responses(
     asyncio.set_event_loop(loop)
 
     try:
+        if responses._storage is not None and not responses._storage.exists:
+            # make sure the storage is set up and exists
+            loop.run_until_complete(responses._storage.asetup())
+
         for _ in requests:
             response = loop.run_until_complete(responses.aconsume_next_response())
 
