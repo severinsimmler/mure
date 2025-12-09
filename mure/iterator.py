@@ -24,7 +24,7 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         requests: list[Request],
         *,
         batch_size: int = 5,
-        cache: bool = False,
+        enable_cache: bool = False,
     ):
         """Initialize a response iterator.
 
@@ -34,13 +34,13 @@ class AsyncResponseIterator(AsyncIterator[Response]):
             Resources to request.
         batch_size : int, optional
             Number of resources to request concurrently, by default 5.
-        cache : bool, optional
+        enable_cache : bool, optional
             Whether to use a cache for storing responses, by default False.
         """
         self.requests = requests
         self.num_requests = len(requests)
         self.batch_size = batch_size
-        self._storage = Storage() if cache else None
+        self._storage = Storage() if enable_cache else None
         self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
         self._queue = Queue(self.num_requests)
         self._semaphore = Semaphore(self.batch_size)
