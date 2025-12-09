@@ -1,33 +1,12 @@
 from enum import StrEnum
 
-from hishel import (
-    HEURISTICALLY_CACHEABLE_STATUS_CODES,
-    AsyncBaseStorage,
-    AsyncFileStorage,
-    AsyncInMemoryStorage,
-    AsyncSQLiteStorage,
-    Controller,
-)
+from hishel import AsyncBaseStorage, AsyncSqliteStorage
 
 
 class Cache(StrEnum):
     """Available cache backends."""
 
-    FILE = "FILE"
-    IN_MEMORY = "IN_MEMORY"
     SQLITE = "SQLITE"
-
-
-class CacheController(Controller):
-    """Cache controller for HTTP requests."""
-
-    def __init__(self):
-        super().__init__(
-            cacheable_methods=["GET", "POST"],
-            force_cache=True,
-            allow_heuristics=True,
-            cacheable_status_codes=[*HEURISTICALLY_CACHEABLE_STATUS_CODES, 0, 500],
-        )
 
 
 def get_storage(cache: Cache) -> AsyncBaseStorage:
@@ -44,9 +23,7 @@ def get_storage(cache: Cache) -> AsyncBaseStorage:
         Storage backend.
     """
     match cache:
-        case Cache.FILE:
-            return AsyncFileStorage()
-        case Cache.IN_MEMORY:
-            return AsyncInMemoryStorage()
         case Cache.SQLITE:
-            return AsyncSQLiteStorage()
+            return AsyncSqliteStorage()
+        case _:
+            raise ValueError(f"Unsupported cache type: {cache}")
