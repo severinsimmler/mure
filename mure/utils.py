@@ -36,10 +36,6 @@ def fetch_responses(
     asyncio.set_event_loop(loop)
 
     try:
-        if responses._storage is not None and not responses._storage.exists:
-            # make sure the storage is set up and exists
-            loop.run_until_complete(responses._storage.asetup())
-
         for _ in requests:
             response = loop.run_until_complete(responses.aconsume_next_response())
 
