@@ -7,13 +7,9 @@ from types import TracebackType
 from typing import Self
 
 import chardet
-from hishel import AsyncCacheClient
-from hishel._utils import generate_key
-from httpcore import Request as _Request
-from httpcore import Response as _Response
 from httpx import AsyncClient, Headers
 
-from mure.cache import Cache, CacheController, get_storage
+from mure.cache import Cache, Storage
 from mure.logging import Logger
 from mure.models import Request, Response
 from mure.queue import Queue
@@ -45,7 +41,7 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         self.requests = requests
         self.num_requests = len(requests)
         self.batch_size = batch_size
-        self._storage = get_storage(cache) if cache else None
+        self._storage = Storage(cache) if cache else None
         self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
         self._queue = Queue(self.num_requests)
         self._semaphore = Semaphore(self.batch_size)
@@ -138,6 +134,9 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         Response
             The server's response.
         """
+        if self._storage is not None and (response := await self._storage.aget_response(request)):
+            return response
+
         _request = session.build_request(
             method=request.method,
             url=request.url,
@@ -171,7 +170,7 @@ class AsyncResponseIterator(AsyncIterator[Response]):
                 encoding = chardet.detect(content)["encoding"]
                 text = content.decode(encoding or "utf-8", errors="replace")
 
-            return Response(
+            response = Response(
                 status=response.status_code,
                 reason=response.reason_phrase,
                 ok=response.is_success,
@@ -184,27 +183,7 @@ class AsyncResponseIterator(AsyncIterator[Response]):
             if self._log_errors:
                 LOGGER.error(error)
 
-            if self._storage is not None:
-                cached_request = _Request(
-                    method=_request.method,
-                    url=str(_request.url),
-                    headers=_request.headers,  # type: ignore
-                    content=_request.content,
-                )
-                cached_response = _Response(
-                    status=0,
-                    content=b"",
-                    extensions={"reason_phrase": repr(error).encode("utf-8")},
-                )
-                cached_response.read()
-
-                await self._storage.store(
-                    key=generate_key(cached_request, _request.content),
-                    request=cached_request,
-                    response=cached_response,
-                )
-
-            return Response(
+            response = Response(
                 status=0,
                 reason=repr(error),
                 ok=False,
@@ -213,6 +192,11 @@ class AsyncResponseIterator(AsyncIterator[Response]):
                 content=b"",
                 headers=Headers(),
             )
+
+        if self._storage is not None:
+            await self._storage.asave_response(request, response)
+
+        return response
 
     async def _afetch_response(
         self,
@@ -237,16 +221,7 @@ class AsyncResponseIterator(AsyncIterator[Response]):
 
     async def _afetch_responses(self):
         """Fetch all responses concurrently."""
-        async with (
-            AsyncClient(follow_redirects=True, http2=True)
-            if self._storage is None
-            else AsyncCacheClient(
-                follow_redirects=True,
-                http2=True,
-                storage=self._storage,
-                controller=CacheController(),
-            )
-        ) as session:
+        async with AsyncClient(follow_redirects=True, http2=True) as session:
             tasks = [
                 self._afetch_response(session, priority, request)
                 for priority, request in enumerate(self.requests)
