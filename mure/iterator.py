@@ -6,10 +6,9 @@ from collections.abc import AsyncIterator
 from types import TracebackType
 from typing import Self
 
-import chardet
-from httpx import AsyncClient, Headers
+from httpx import AsyncClient
 
-from mure.cache import Cache, Storage
+from mure.cache import Storage
 from mure.logging import Logger
 from mure.models import Request, Response
 from mure.queue import Queue
@@ -25,7 +24,7 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         requests: list[Request],
         *,
         batch_size: int = 5,
-        cache: Cache | None = None,
+        cache: bool = False,
     ):
         """Initialize a response iterator.
 
@@ -35,13 +34,13 @@ class AsyncResponseIterator(AsyncIterator[Response]):
             Resources to request.
         batch_size : int, optional
             Number of resources to request concurrently, by default 5.
-        cache : Cache | None, optional
-            Cache to use for storing responses, by default None.
+        cache : bool, optional
+            Whether to use a cache for storing responses, by default False.
         """
         self.requests = requests
         self.num_requests = len(requests)
         self.batch_size = batch_size
-        self._storage = Storage(cache) if cache else None
+        self._storage = Storage() if cache else None
         self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
         self._queue = Queue(self.num_requests)
         self._semaphore = Semaphore(self.batch_size)
@@ -104,6 +103,10 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         Response | None
             Next response, or None if there are no more responses to consume.
         """
+        if self._storage is not None and not self._storage.exists:
+            # make sure the storage is set up and exists
+            await self._storage.asetup()
+
         if self._task is None:
             self._task = asyncio.create_task(self._afetch_responses())
 
@@ -159,25 +162,14 @@ class AsyncResponseIterator(AsyncIterator[Response]):
             # ...and read the content
             content = await response.aread()
 
-            try:
-                # try to decode the content using the response encoding
-                text = content.decode(response.encoding or "utf-8", errors="replace")
-            except (LookupError, TypeError):
-                # LookupError is raised if the encoding was not found which could
-                # indicate a misspelling or similar mistake
-                #
-                # TypeError can be raised if encoding is None
-                encoding = chardet.detect(content)["encoding"]
-                text = content.decode(encoding or "utf-8", errors="replace")
-
             response = Response(
                 status=response.status_code,
                 reason=response.reason_phrase,
                 ok=response.is_success,
-                text=text,
                 content=content,
+                encoding=response.encoding,
                 url=str(response.url),
-                headers=response.headers,
+                headers=dict(response.headers),
             )
         except Exception as error:
             if self._log_errors:
@@ -187,10 +179,10 @@ class AsyncResponseIterator(AsyncIterator[Response]):
                 status=0,
                 reason=repr(error),
                 ok=False,
-                text="",
                 url="",
                 content=b"",
-                headers=Headers(),
+                encoding="utf-8",
+                headers={},
             )
 
         if self._storage is not None:
