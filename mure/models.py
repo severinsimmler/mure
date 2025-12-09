@@ -1,6 +1,9 @@
 import json
 from collections.abc import Mapping
+from functools import cached_property
 from typing import Any, Literal, NotRequired, TypedDict
+
+from charset_normalizer import from_bytes as detect_encoding
 
 # supported http methods
 Method = Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"]
@@ -89,16 +92,16 @@ class Response:
         status: int,
         reason: str | None,
         url: str,
-        text: str,
         content: bytes,
+        encoding: str | None,
         headers: Mapping[str, str],
     ):
         self.ok = ok
         self.status = status
         self.reason = reason
         self.url = url
-        self.text = text
         self.content = content
+        self.encoding = encoding
         self.headers = headers
 
     def __repr__(self) -> str:
@@ -114,3 +117,25 @@ class Response:
             Parsed JSON response body.
         """
         return json.loads(self.text)
+
+    @cached_property
+    def text(self) -> str:
+        """Decode the response body as text.
+
+        Returns
+        -------
+        str
+            Decoded response body.
+        """
+        try:
+            # try to decode the content using the response encoding
+            return self.content.decode(self.encoding, errors="replace")  # type: ignore
+        except (LookupError, TypeError):
+            # LookupError is raised if the encoding was not found which could
+            # indicate a misspelling or similar mistake
+            #
+            # TypeError can be raised if encoding is None
+            if match := detect_encoding(self.content).best():
+                return self.content.decode(match.encoding, errors="replace")
+
+        raise ValueError("Unable to detect encoding for response content")
