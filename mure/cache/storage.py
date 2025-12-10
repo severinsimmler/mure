@@ -1,4 +1,5 @@
 import hashlib
+from asyncio import Lock
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -30,10 +31,12 @@ class Storage:
 
         self._db = AsyncDatabase(f"sqlite+aiosqlite:///{self.filepath}")
         self._queries = QueryCollection.from_file(Path(__file__).parent / "queries.sql")
+        self._lock = Lock()
 
     async def asetup(self):
         """Set up the table for the storage."""
-        await self._db.aexecute(self._queries["create_table"])
+        async with self._lock:
+            await self._db.aexecute(self._queries["create_table"])
 
     async def asave_response(self, request: Request, response: Response):
         """Save a response to the cache.
@@ -47,19 +50,22 @@ class Storage:
         """
         from databank.utils import serialize_param
 
-        await self._db.aexecute(
-            self._queries["save_response"],
-            params={
-                "key": hash_request(request),
-                "url": response.url,
-                "headers": serialize_param(dict(response.headers)),
-                "status": response.status,
-                "ok": response.ok,
-                "reason": response.reason,
-                "content": response.content,
-                "encoding": response.encoding,
-            },
-        )
+        key = hash_request(request)
+
+        async with self._lock:
+            await self._db.aexecute(
+                self._queries["save_response"],
+                params={
+                    "key": key,
+                    "url": response.url,
+                    "headers": serialize_param(dict(response.headers)),
+                    "status": response.status,
+                    "ok": response.ok,
+                    "reason": response.reason,
+                    "content": response.content,
+                    "encoding": response.encoding,
+                },
+            )
 
     async def aget_response(self, request: Request) -> Response | None:
         """Get a cached response for a request.
@@ -74,19 +80,22 @@ class Storage:
         Response | None
             Cached response, or None if not found.
         """
-        if record := await self._db.afetch_one(
-            self._queries["get_response"],
-            params={"key": hash_request(request)},
-        ):
-            return Response(
-                ok=bool(record["ok"]),
-                status=record["status"],
-                reason=record["reason"],
-                url=record["url"],
-                content=record["content"],
-                encoding=record["encoding"],
-                headers=orjson.loads(record["headers"]),
-            )
+        key = hash_request(request)
+
+        async with self._lock:
+            if record := await self._db.afetch_one(
+                self._queries["get_response"],
+                params={"key": key},
+            ):
+                return Response(
+                    ok=bool(record["ok"]),
+                    status=record["status"],
+                    reason=record["reason"],
+                    url=record["url"],
+                    content=record["content"],
+                    encoding=record["encoding"],
+                    headers=orjson.loads(record["headers"]),
+                )
 
         return None
 
