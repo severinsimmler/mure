@@ -16,10 +16,10 @@ jobs:
         uses: astral-sh/setup-uv@v6
 
       - name: Install Python dependencies
-        run: uv sync --frozen --no-dev
+        run: uv sync --frozen --no-dev --all-extras
 
       - name: Run unit tests
-        run: uv run --no-dev --with pytest pytest tests
+        run: uv run --no-dev --all-extras --with pytest pytest tests
 
       - name: Build wheels
         run: uv build
