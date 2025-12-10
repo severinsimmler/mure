@@ -9,17 +9,11 @@ import orjson
 from mure.models import Request, Response
 
 
-class Storage:
+class ResponseStorage:
     """Storage for HTTP responses."""
 
     def __init__(self):
-        """Initialize storage.
-
-        Parameters
-        ----------
-        storage : AsyncBaseStorage
-            Storage backend.
-        """
+        """Initialize storage."""
         try:
             from databank import AsyncDatabase
             from databank.query import QueryCollection

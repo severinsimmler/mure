@@ -1,1 +1,1 @@
-from mure.cache.storage import Storage as Storage
+from mure.cache.storage import ResponseStorage as ResponseStorage
