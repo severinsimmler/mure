@@ -12,7 +12,7 @@ from mure.models import Request, Response
 class Storage:
     """Storage for HTTP responses."""
 
-    def __init__(self) -> None:
+    def __init__(self):
         """Initialize storage.
 
         Parameters
