@@ -108,9 +108,11 @@ def hash_request(request: Request) -> str:
         Hash of the request.
     """
     data = {
-        "method": request.method.upper(),
-        "url": request.url.lower(),
-        "headers": _normalize(request.headers),
+        "method": request.method.upper().strip(),
+        "url": request.url.lower().strip(),
+        "headers": _normalize({k.lower().strip(): v for k, v in request.headers.items()})
+        if request.headers
+        else None,
         "params": _normalize(request.params),
         "data": _normalize(request.data),
         "json": _normalize(request.json),
