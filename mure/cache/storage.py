@@ -4,10 +4,6 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from databank import AsyncDatabase
-from databank.query import QueryCollection
-from databank.utils import serialize_param
-
 from mure.models import Request, Response
 
 
@@ -22,6 +18,12 @@ class Storage:
         storage : AsyncBaseStorage
             Storage backend.
         """
+        try:
+            from databank import AsyncDatabase
+            from databank.query import QueryCollection
+        except ImportError as error:
+            raise ImportError("Install mure with the `caching` extra dependencies") from error
+
         self.filepath = Path(".mure-cache.sqlite").resolve()
         self.exists = self.filepath.exists()
 
@@ -42,6 +44,8 @@ class Storage:
         response : Response
             Response to save.
         """
+        from databank.utils import serialize_param
+
         await self._db.aexecute(
             self._queries["save_response"],
             params={
