@@ -1,6 +1,6 @@
 [project]
 name = "mure"
-version = "4.0.0b1"
+version = "4.0.0b2"
 description = "Perform multiple HTTP requests concurrently – without worrying about async/await."
 authors = [{ name = "Severin Simmler", email = "s.simmler@snapaddy.com" }]
 requires-python = ">=3.11"
@@ -8,6 +8,7 @@ readme = "README.md"
 dependencies = [
     "charset-normalizer>=3.4.4",
     "httpx[http2]>=0.28.1",
+    "orjson>=3.11.5",
 ]
 
 [project.optional-dependencies]

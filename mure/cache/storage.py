@@ -1,8 +1,9 @@
 import hashlib
-import json
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
+
+import orjson
 
 from mure.models import Request, Response
 
@@ -84,7 +85,7 @@ class Storage:
                 url=record["url"],
                 content=record["content"],
                 encoding=record["encoding"],
-                headers=json.loads(record["headers"]),
+                headers=orjson.loads(record["headers"]),
             )
 
         return None
@@ -112,7 +113,7 @@ def hash_request(request: Request) -> str:
         "json": _normalize(request.json),
     }
 
-    return hashlib.sha256(json.dumps(data, sort_keys=True).encode("utf-8")).hexdigest()
+    return hashlib.sha256(orjson.dumps(data, option=orjson.OPT_SORT_KEYS)).hexdigest()
 
 
 def _sort_key(item: tuple[Any, Any]) -> str:
@@ -138,6 +139,6 @@ def _normalize(value: Any) -> Any:
         return [_normalize(v) for v in value]
 
     try:
-        return json.dumps(value, sort_keys=True)
+        return orjson.dumps(value, option=orjson.OPT_SORT_KEYS).decode("utf-8")
     except TypeError:
         return repr(value)

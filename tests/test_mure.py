@@ -1,6 +1,5 @@
-from json import JSONDecodeError
-
 import pytest
+from orjson import JSONDecodeError
 
 import mure
 from mure.models import Resource, Response

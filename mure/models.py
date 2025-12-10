@@ -1,8 +1,8 @@
-import json
 from collections.abc import Mapping
 from functools import cached_property
 from typing import Any, Literal, NotRequired, TypedDict
 
+import orjson
 from charset_normalizer import from_bytes as detect_encoding
 
 # supported http methods
@@ -116,7 +116,7 @@ class Response:
         Any
             Parsed JSON response body.
         """
-        return json.loads(self.text)
+        return orjson.loads(self.text)
 
     @cached_property
     def text(self) -> str:
