@@ -1,9 +1,9 @@
 import asyncio
 from collections.abc import Generator
 
-from mure.iterator import LOGGER, AsyncResponseIterator
-from mure.models import Request, Response
+from mure.iterator import AsyncResponseIterator
 from mure.logging import Logger
+from mure.models import Request, Response
 
 LOGGER = Logger(__name__)
 
@@ -31,7 +31,7 @@ def fetch_responses(
         The server's response for each request.
     """
     if asyncio.events._get_running_loop() is not None:
-        LOGGER.warning("mure is called from a running event loop")
+        LOGGER.debug("mure is called from a running event loop")
 
     responses = AsyncResponseIterator(
         requests,

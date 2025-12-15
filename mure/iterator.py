@@ -1,7 +1,7 @@
 import asyncio
 import contextlib
 import os
-from asyncio import CancelledError, Semaphore
+from asyncio import CancelledError, Semaphore, TaskGroup
 from collections.abc import AsyncIterator
 from types import TracebackType
 from typing import Self
@@ -213,9 +213,7 @@ class AsyncResponseIterator(AsyncIterator[Response]):
 
     async def _afetch_responses(self):
         """Fetch all responses concurrently."""
-        async with AsyncClient(follow_redirects=True, http2=True) as session:
-            tasks = [
-                self._afetch_response(session, priority, request)
-                for priority, request in enumerate(self.requests)
-            ]
-            await asyncio.gather(*tasks)
+        async with AsyncClient(follow_redirects=True, http2=True) as session, TaskGroup() as tg:
+            for priority, request in enumerate(self.requests):
+                LOGGER.debug(f"Scheduling request with priority {priority}")
+                tg.create_task(self._afetch_response(session, priority, request))
