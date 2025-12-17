@@ -29,7 +29,18 @@ def delete(
     return (
         response
         for response in fetch_responses(
-            [Request("DELETE", **resource) for resource in resources],
+            [
+                Request(
+                    "DELETE",
+                    resource["url"],
+                    headers=resource.get("headers"),
+                    params=resource.get("params"),
+                    data=resource.get("data"),
+                    json=resource.get("json"),
+                    timeout=resource.get("timeout"),
+                )
+                for resource in resources
+            ],
             batch_size=batch_size,
             enable_cache=enable_cache,
         )
@@ -61,7 +72,18 @@ def get(
     return (
         response
         for response in fetch_responses(
-            [Request("GET", **resource) for resource in resources],
+            [
+                Request(
+                    "GET",
+                    resource["url"],
+                    headers=resource.get("headers"),
+                    params=resource.get("params"),
+                    data=resource.get("data"),
+                    json=resource.get("json"),
+                    timeout=resource.get("timeout"),
+                )
+                for resource in resources
+            ],
             batch_size=batch_size,
             enable_cache=enable_cache,
         )
@@ -93,7 +115,18 @@ def head(
     return (
         response
         for response in fetch_responses(
-            [Request("HEAD", **resource) for resource in resources],
+            [
+                Request(
+                    "HEAD",
+                    resource["url"],
+                    headers=resource.get("headers"),
+                    params=resource.get("params"),
+                    data=resource.get("data"),
+                    json=resource.get("json"),
+                    timeout=resource.get("timeout"),
+                )
+                for resource in resources
+            ],
             batch_size=batch_size,
             enable_cache=enable_cache,
         )
@@ -125,7 +158,18 @@ def patch(
     return (
         response
         for response in fetch_responses(
-            [Request("PATCH", **resource) for resource in resources],
+            [
+                Request(
+                    "PATCH",
+                    resource["url"],
+                    headers=resource.get("headers"),
+                    params=resource.get("params"),
+                    data=resource.get("data"),
+                    json=resource.get("json"),
+                    timeout=resource.get("timeout"),
+                )
+                for resource in resources
+            ],
             batch_size=batch_size,
             enable_cache=enable_cache,
         )
@@ -157,7 +201,18 @@ def post(
     return (
         response
         for response in fetch_responses(
-            [Request("POST", **resource) for resource in resources],
+            [
+                Request(
+                    "POST",
+                    resource["url"],
+                    headers=resource.get("headers"),
+                    params=resource.get("params"),
+                    data=resource.get("data"),
+                    json=resource.get("json"),
+                    timeout=resource.get("timeout"),
+                )
+                for resource in resources
+            ],
             batch_size=batch_size,
             enable_cache=enable_cache,
         )
@@ -189,7 +244,18 @@ def put(
     return (
         response
         for response in fetch_responses(
-            [Request("PUT", **resource) for resource in resources],
+            [
+                Request(
+                    "PUT",
+                    resource["url"],
+                    headers=resource.get("headers"),
+                    params=resource.get("params"),
+                    data=resource.get("data"),
+                    json=resource.get("json"),
+                    timeout=resource.get("timeout"),
+                )
+                for resource in resources
+            ],
             batch_size=batch_size,
             enable_cache=enable_cache,
         )
