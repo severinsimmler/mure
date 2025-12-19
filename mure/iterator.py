@@ -8,7 +8,7 @@ from typing import Self
 
 from httpx import AsyncClient
 
-from mure.cache import SQLiteStorage
+from mure.cache import Cache, get_storage
 from mure.logging import Logger
 from mure.models import Request, Response
 from mure.queue import Queue
@@ -24,7 +24,7 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         requests: list[Request],
         *,
         batch_size: int = 5,
-        enable_cache: bool = False,
+        cache: Cache | None = None,
     ):
         """Initialize a response iterator.
 
@@ -40,7 +40,7 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         self.requests = requests
         self.num_requests = len(requests)
         self.batch_size = batch_size
-        self._storage = SQLiteStorage() if enable_cache else None
+        self._storage = get_storage(cache)
         self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
         self._queue = Queue(self.num_requests)
         self._semaphore = Semaphore(self.batch_size)
@@ -81,9 +81,9 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         exc_tb: TracebackType | None,
     ):
         """Exit async context."""
-        await self.aclose()
+        await self.acleanup()
 
-    async def aclose(self):
+    async def acleanup(self):
         """Clean up resources."""
         if self._task and not self._task.done():
             self._task.cancel()
@@ -91,7 +91,7 @@ class AsyncResponseIterator(AsyncIterator[Response]):
                 await self._task
 
         if self._storage is not None:
-            await self._storage.aclose()
+            await self._storage.acleanup()
 
     async def aconsume_next_response(self) -> Response | None:
         """Consume the next response.
