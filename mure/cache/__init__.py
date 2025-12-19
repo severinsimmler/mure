@@ -1,1 +1,2 @@
-from mure.cache.storage import SQLiteStorage as SQLiteStorage
+from mure.cache.core import Cache as Cache
+from mure.cache.core import get_storage as get_storage
