@@ -16,6 +16,9 @@ sqlite = [
     "aiosqlite>=0.21.0",
     "databank>=1.0.1"
 ]
+msgpack = [
+    "msgpack>=1.0.5"
+]
 
 [dependency-groups]
 dev = [
