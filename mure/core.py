@@ -1,5 +1,6 @@
 from collections.abc import Generator
 
+from mure.cache import Cache
 from mure.models import Request, Resource, Response
 from mure.utils import fetch_responses
 
@@ -8,7 +9,7 @@ def delete(
     resources: list[Resource],
     *,
     batch_size: int = 5,
-    enable_cache: bool = False,
+    cache: Cache | None = None,
 ) -> Generator[Response]:
     """Perform a DELETE request for each resource.
 
@@ -18,8 +19,8 @@ def delete(
         Resources to request.
     batch_size : int
         Number of items to request per batch concurrently, by default 5.
-    enable_cache : bool, optional
-        Whether to use a cache for storing responses, by default False.
+    cache : Cache | None, optional
+        Which kind of cache to use, by default None.
 
     Returns
     -------
@@ -42,7 +43,7 @@ def delete(
                 for resource in resources
             ],
             batch_size=batch_size,
-            enable_cache=enable_cache,
+            cache=cache,
         )
     )
 
@@ -51,7 +52,7 @@ def get(
     resources: list[Resource],
     *,
     batch_size: int = 5,
-    enable_cache: bool = False,
+    cache: Cache | None = None,
 ) -> Generator[Response]:
     """Perform a GET request for each resource.
 
@@ -61,8 +62,8 @@ def get(
         Resources to request.
     batch_size : int
         Number of items to request per batch concurrently, by default 5.
-    enable_cache : bool, optional
-        Whether to use a cache for storing responses, by default False.
+    cache : Cache | None, optional
+        Which kind of cache to use, by default None.
 
     Returns
     -------
@@ -85,7 +86,7 @@ def get(
                 for resource in resources
             ],
             batch_size=batch_size,
-            enable_cache=enable_cache,
+            cache=cache,
         )
     )
 
@@ -94,7 +95,7 @@ def head(
     resources: list[Resource],
     *,
     batch_size: int = 5,
-    enable_cache: bool = False,
+    cache: Cache | None = None,
 ) -> Generator[Response]:
     """Perform a HEAD request for each resource.
 
@@ -104,8 +105,8 @@ def head(
         Resources to request.
     batch_size : int
         Number of items to request per batch concurrently, by default 5.
-    enable_cache : bool, optional
-        Whether to use a cache for storing responses, by default False.
+    cache : Cache | None, optional
+        Which kind of cache to use, by default None.
 
     Returns
     -------
@@ -128,7 +129,7 @@ def head(
                 for resource in resources
             ],
             batch_size=batch_size,
-            enable_cache=enable_cache,
+            cache=cache,
         )
     )
 
@@ -137,7 +138,7 @@ def patch(
     resources: list[Resource],
     *,
     batch_size: int = 5,
-    enable_cache: bool = False,
+    cache: Cache | None = None,
 ) -> Generator[Response]:
     """Perform a PATCH request for each resource.
 
@@ -147,8 +148,8 @@ def patch(
         Resources to request.
     batch_size : int
         Number of items to request per batch concurrently, by default 5.
-    enable_cache : bool, optional
-        Whether to use a cache for storing responses, by default False.
+    cache : Cache | None, optional
+        Which kind of cache to use, by default None.
 
     Returns
     -------
@@ -171,7 +172,7 @@ def patch(
                 for resource in resources
             ],
             batch_size=batch_size,
-            enable_cache=enable_cache,
+            cache=cache,
         )
     )
 
@@ -180,7 +181,7 @@ def post(
     resources: list[Resource],
     *,
     batch_size: int = 5,
-    enable_cache: bool = False,
+    cache: Cache | None = None,
 ) -> Generator[Response]:
     """Perform a POST request for each resource.
 
@@ -190,8 +191,8 @@ def post(
         Resources to request.
     batch_size : int
         Number of items to request per batch concurrently, by default 5.
-    enable_cache : bool, optional
-        Whether to use a cache for storing responses, by default False.
+    cache : Cache | None, optional
+        Which kind of cache to use, by default None.
 
     Returns
     -------
@@ -214,7 +215,7 @@ def post(
                 for resource in resources
             ],
             batch_size=batch_size,
-            enable_cache=enable_cache,
+            cache=cache,
         )
     )
 
@@ -223,7 +224,7 @@ def put(
     resources: list[Resource],
     *,
     batch_size: int = 5,
-    enable_cache: bool = False,
+    cache: Cache | None = None,
 ) -> Generator[Response]:
     """Perform a PUT request for each resource.
 
@@ -233,8 +234,8 @@ def put(
         Resources to request.
     batch_size : int
         Number of items to request per batch concurrently, by default 5.
-    enable_cache : bool, optional
-        Whether to use a cache for storing responses, by default False.
+    cache : Cache | None, optional
+        Which kind of cache to use, by default None.
 
     Returns
     -------
@@ -257,6 +258,6 @@ def put(
                 for resource in resources
             ],
             batch_size=batch_size,
-            enable_cache=enable_cache,
+            cache=cache,
         )
     )
