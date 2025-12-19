@@ -29,6 +29,10 @@ class ResponseStorage:
         async with self._lock:
             await self._db.aexecute(self._queries["create_table"])
 
+    async def aclose(self):
+        """Close the database connection."""
+        await self._db.aclose()
+
     async def asave_response(self, request: Request, response: Response):
         """Save a response to the cache.
 
@@ -83,7 +87,3 @@ class ResponseStorage:
                 )
 
         return None
-
-    async def aclose(self):
-        """Close the database connection."""
-        await self._db.aclose()
