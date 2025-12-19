@@ -303,7 +303,7 @@ wheels = [
 
 [[package]]
 name = "mure"
-version = "4.2.1"
+version = "5.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "charset-normalizer" },
@@ -312,7 +312,7 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-caching = [
+sqlite = [
     { name = "aiosqlite" },
     { name = "databank" },
 ]
@@ -326,13 +326,13 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aiosqlite", marker = "extra == 'caching'", specifier = ">=0.21.0" },
+    { name = "aiosqlite", marker = "extra == 'sqlite'", specifier = ">=0.21.0" },
     { name = "charset-normalizer", specifier = ">=3.4.4" },
-    { name = "databank", marker = "extra == 'caching'", specifier = ">=1.0.1" },
+    { name = "databank", marker = "extra == 'sqlite'", specifier = ">=1.0.1" },
     { name = "httpx", extras = ["http2"], specifier = ">=0.28.1" },
     { name = "orjson", specifier = ">=3.11.5" },
 ]
-provides-extras = ["caching"]
+provides-extras = ["sqlite"]
 
 [package.metadata.requires-dev]
 dev = [

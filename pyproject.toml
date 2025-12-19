@@ -1,6 +1,6 @@
 [project]
 name = "mure"
-version = "4.2.1"
+version = "5.0.0"
 description = "Perform multiple HTTP requests concurrently – without worrying about async/await."
 authors = [{ name = "Severin Simmler", email = "s.simmler@snapaddy.com" }]
 requires-python = ">=3.11"
@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-caching = [
+sqlite = [
     "aiosqlite>=0.21.0",
     "databank>=1.0.1"
 ]
