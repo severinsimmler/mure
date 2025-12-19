@@ -1,1 +1,1 @@
-from mure.cache.storage import ResponseStorage as ResponseStorage
+from mure.cache.storage import SQLiteStorage as SQLiteStorage

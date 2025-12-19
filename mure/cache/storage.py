@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from asyncio import Lock
 from pathlib import Path
 
@@ -6,8 +7,41 @@ import orjson
 from mure.models import Request, Response
 
 
-class ResponseStorage:
-    """Storage for HTTP responses."""
+class Storage(ABC):
+    """Abstract storage class."""
+
+    @abstractmethod
+    async def asave_response(self, request: Request, response: Response):
+        """Save a response to the storage.
+
+        Parameters
+        ----------
+        request : Request
+            Resource requested.
+        response : Response
+            Response to save.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def aget_response(self, request: Request) -> Response | None:
+        """Get a cached response for a request.
+
+        Parameters
+        ----------
+        request : Request
+            Resource to request.
+
+        Returns
+        -------
+        Response | None
+            Cached response, or None if not found.
+        """
+        raise NotImplementedError
+
+
+class SQLiteStorage(Storage):
+    """SQLite storage for HTTP responses."""
 
     def __init__(self):
         """Initialize storage."""

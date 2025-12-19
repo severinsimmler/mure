@@ -8,7 +8,7 @@ from typing import Self
 
 from httpx import AsyncClient
 
-from mure.cache import ResponseStorage
+from mure.cache import SQLiteStorage
 from mure.logging import Logger
 from mure.models import Request, Response
 from mure.queue import Queue
@@ -40,7 +40,7 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         self.requests = requests
         self.num_requests = len(requests)
         self.batch_size = batch_size
-        self._storage = ResponseStorage() if enable_cache else None
+        self._storage = SQLiteStorage() if enable_cache else None
         self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
         self._queue = Queue(self.num_requests)
         self._semaphore = Semaphore(self.batch_size)
