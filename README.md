@@ -115,14 +115,22 @@ You can enable caching to avoid requesting the same resources over and over agai
 
 ```python
 >>> import mure
+>>> from mure.cache import Cache
 >>> resources = [
 ...     {"url": "https://httpbin.org/post"},
 ...     {"url": "https://httpbin.org/post", "json": {"foo": "bar"}},
 ...     {"url": "https://httpbin.org/post"},
 ... ]
->>> responses = mure.post(resources, enable_cache=True)
+>>> responses = mure.post(resources, cache=Cache.SQLITE)
 ```
 
 This will make only two requests and use the hit from the cache for the last resource. The responses are stored in a local SQLite database `.mure-cache.sqlite` in the current working directory.
 
 Note that you have to install [the SQLite extras](https://github.com/severinsimmler/mure/blob/master/pyproject.toml#L14-L17).
+
+You can also use the in-memory storage with `Cache.MEMORY`. This cache only persists within the same function call, i.e. calling `mure.post()` twice will create create two separate caches.
+
+There is also a `Cache.FILE` which stores the responses on disk (in a folder `.mure-cache` in the current working directory).
+
+> [!NOTE]
+> Caching does not respect any `Cache-Control` HTTP headers or something like that. It just writes all responses, including unsuccessful ones, into the cache and may reuse them instead of firing another request. There is also no TTL mechanism.
