@@ -128,7 +128,7 @@ This will make only two requests and use the hit from the cache for the last res
 
 Note that you have to install [the SQLite extras](https://github.com/severinsimmler/mure/blob/master/pyproject.toml#L14-L17).
 
-You can also use the in-memory storage with `Cache.MEMORY`. This cache only persists within the same function call, i.e. calling `mure.post()` twice will create create two separate caches.
+You can also use the in-memory storage with `Cache.MEMORY`. This cache only persists within the same function call, i.e. calling `mure.post()` twice will create two separate caches.
 
 There is also a `Cache.FILE` which stores the responses on disk (in a folder `.mure-cache` in the current working directory).
 
