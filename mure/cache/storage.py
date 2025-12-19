@@ -83,3 +83,7 @@ class ResponseStorage:
                 )
 
         return None
+
+    async def aclose(self):
+        """Close the database connection."""
+        await self._db.aclose()

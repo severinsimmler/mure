@@ -14,7 +14,7 @@ dependencies = [
 [project.optional-dependencies]
 caching = [
     "aiosqlite>=0.21.0",
-    "databank>=1.0.0"
+    "databank>=1.0.1"
 ]
 
 [dependency-groups]

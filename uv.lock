@@ -126,14 +126,14 @@ wheels = [
 
 [[package]]
 name = "databank"
-version = "1.0.0"
+version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "sqlalchemy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3f/78/ff13a24d0daf7d6bd1d8a89124815cc9739489383a825cb819e01874e9c4/databank-1.0.0.tar.gz", hash = "sha256:0fc7fb47b0276c7e5b1ca49ad08a901842dd708cd87a7f1a539fa89bdd15203a", size = 26819, upload-time = "2025-10-14T08:20:35.578Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9b/b3/37aeaa47e7eda5de7a0c6e59a4abe4aa01d6ac96b11b25f751cc09090692/databank-1.1.0.tar.gz", hash = "sha256:16da75a68399871164f1dc5c5d35e3e3e25675e063bb45737cc2970b6a57693e", size = 32985, upload-time = "2025-12-19T08:36:49.625Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c3/6f/74d50f14e5a21fe6f336f50ee2a1e9811d207e6626f62a834d569812012e/databank-1.0.0-py3-none-any.whl", hash = "sha256:5c25dad6368b96af5ac5e571dc09603b8df035c5ddce4a48b6bf3acfefa9136a", size = 7294, upload-time = "2025-10-14T08:20:34.795Z" },
+    { url = "https://files.pythonhosted.org/packages/1f/9f/3d6e2e1ca3e39145d5e7f7406d86c99906d345ef8c26eb5ac162f057fa9f/databank-1.1.0-py3-none-any.whl", hash = "sha256:c2a3068943f5c4938e46ef0eb9e90475994e691d77586f84654a01ead47e26e2", size = 7405, upload-time = "2025-12-19T08:36:48.469Z" },
 ]
 
 [[package]]
@@ -328,7 +328,7 @@ dev = [
 requires-dist = [
     { name = "aiosqlite", marker = "extra == 'caching'", specifier = ">=0.21.0" },
     { name = "charset-normalizer", specifier = ">=3.4.4" },
-    { name = "databank", marker = "extra == 'caching'", specifier = ">=1.0.0" },
+    { name = "databank", marker = "extra == 'caching'", specifier = ">=1.0.1" },
     { name = "httpx", extras = ["http2"], specifier = ">=0.28.1" },
     { name = "orjson", specifier = ">=3.11.5" },
 ]

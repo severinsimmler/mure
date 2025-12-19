@@ -90,6 +90,9 @@ class AsyncResponseIterator(AsyncIterator[Response]):
             with contextlib.suppress(CancelledError):
                 await self._task
 
+        if self._storage is not None:
+            await self._storage.aclose()
+
     async def aconsume_next_response(self) -> Response | None:
         """Consume the next response.
 
