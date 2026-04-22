@@ -247,4 +247,4 @@ class Response:
             if match := detect_encoding(self.content).best():
                 return self.content.decode(match.encoding, errors="replace")
 
-        raise ValueError("Unable to detect encoding for response content")
+        raise ValueError(f"Unable to detect encoding for response content from {self.url}")
