@@ -66,6 +66,7 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         response = await self.aconsume_next_response()
 
         if response is None:
+            await self.acleanup()
             raise StopAsyncIteration
 
         return response

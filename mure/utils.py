@@ -1,5 +1,7 @@
 import asyncio
 from collections.abc import Generator
+from queue import SimpleQueue
+from threading import Thread
 
 from mure.cache import Cache
 from mure.iterator import AsyncResponseIterator
@@ -28,24 +30,28 @@ def fetch_responses(
     Response
         The server's response for each request.
     """
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    # queue to communicate between the async thread and the generator
+    queue: SimpleQueue[Response | None] = SimpleQueue()
 
-    responses = AsyncResponseIterator(
-        requests,
-        batch_size=batch_size,
-        cache=cache,
-    )
+    async def main():
+        async for response in AsyncResponseIterator(requests, batch_size=batch_size, cache=cache):
+            queue.put(response)
 
-    try:
-        for _ in requests:
-            response = loop.run_until_complete(responses.aconsume_next_response())
+        # signal that we're done
+        queue.put(None)
 
-            if response is None:
-                raise ValueError("There are inconsistencies between requests and responses")
+    def run_main():
+        asyncio.run(main())
 
-            yield response
-    finally:
-        loop.run_until_complete(responses.acleanup())
-        loop.close()
-        asyncio.set_event_loop(None)
+    # run the async main function in a separate thread
+    thread = Thread(target=run_main)
+    thread.start()
+
+    while True:
+        response = queue.get()
+
+        # no more responses to fetch
+        if response is None:
+            break
+
+        yield response
