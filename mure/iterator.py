@@ -6,7 +6,7 @@ from collections.abc import AsyncIterator
 from types import TracebackType
 from typing import Self
 
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 
 from mure.cache import Cache, get_storage
 from mure.logging import Logger

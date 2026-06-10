@@ -4,7 +4,7 @@
 [![downloads/month](https://static.pepy.tech/personalized-badge/mure?period=month&units=abbreviation&left_color=black&right_color=black&left_text=downloads/month)](https://pepy.tech/project/mure)
 [![downloads/week](https://static.pepy.tech/personalized-badge/mure?period=week&units=abbreviation&left_color=black&right_color=black&left_text=downloads/week)](https://pepy.tech/project/mure)
 
-This is a thin layer on top of [`httpx`](https://www.python-httpx.org/) to perform multiple HTTP requests concurrently – without worrying about async/await.
+This is a thin layer on top of [`httpx2`](https://httpx2.pydantic.dev/) that allows you to perform multiple HTTP requests concurrently without having to worry about async/await.
 
 `mure` means **mu**ltiple **re**quests, but is also the German term for a form of mass wasting involving fast-moving flow of debris and dirt that has become liquified by the addition of water.
 
@@ -67,45 +67,50 @@ Control verbosity with the `MURE_LOG_ERRORS` environment variable:
 <Response(0, UnsupportedProtocol("Request URL is missing an 'http://' or 'https://' protocol."))>
 >>> os.environ["MURE_LOG_ERRORS"] = "true"
 >>> next(mure.get([{"url": "invalid"}]))
-[2024-05-17 10:23:21,963] [ERROR] Request URL is missing an 'http://' or 'https://' protocol.
+[2026-06-10 13:19:22,546] [ERROR] Request URL is missing an 'http://' or 'https://' protocol.
 Traceback (most recent call last):
-  File "/home/severin/git/mure/.venv/lib/python3.12/site-packages/httpx/_transports/default.py", line 69, in map_httpcore_exceptions
+  File "/home/severin/git/mure/.venv/lib/python3.14/site-packages/httpx2/_transports/default.py", line 101, in map_httpcore_exceptions
     yield
-  File "/home/severin/git/mure/.venv/lib/python3.12/site-packages/httpx/_transports/default.py", line 373, in handle_async_request
+  File "/home/severin/git/mure/.venv/lib/python3.14/site-packages/httpx2/_transports/default.py", line 392, in handle_async_request
     resp = await self._pool.handle_async_request(req)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/severin/git/mure/.venv/lib/python3.12/site-packages/httpcore/_async/connection_pool.py", line 167, in handle_async_request
-    raise UnsupportedProtocol(
-httpcore.UnsupportedProtocol: Request URL is missing an 'http://' or 'https://' protocol.
+  File "/home/severin/git/mure/.venv/lib/python3.14/site-packages/httpcore2/_async/connection_pool.py", line 199, in handle_async_request
+    raise UnsupportedProtocol("Request URL is missing an 'http://' or 'https://' protocol.")
+httpcore2.UnsupportedProtocol: Request URL is missing an 'http://' or 'https://' protocol.
 
 The above exception was the direct cause of the following exception:
 
 Traceback (most recent call last):
-  File "/home/severin/git/mure/mure/iterator.py", line 266, in _afetch
-    response = await session.request(
-               ^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/severin/git/mure/.venv/lib/python3.12/site-packages/httpx/_client.py", line 1574, in request
-    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/severin/git/mure/.venv/lib/python3.12/site-packages/httpx/_client.py", line 1661, in send
+  File "/home/severin/git/mure/mure/iterator.py", line 162, in _asend_request
+    response = await session.send(_request, follow_redirects=session.follow_redirects)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/severin/git/mure/.venv/lib/python3.14/site-packages/httpx2/_client.py", line 1582, in send
     response = await self._send_handling_auth(
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/severin/git/mure/.venv/lib/python3.12/site-packages/httpx/_client.py", line 1689, in _send_handling_auth
+    ...<4 lines>...
+    )
+    ^
+  File "/home/severin/git/mure/.venv/lib/python3.14/site-packages/httpx2/_client.py", line 1610, in _send_handling_auth
     response = await self._send_handling_redirects(
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/severin/git/mure/.venv/lib/python3.12/site-packages/httpx/_client.py", line 1726, in _send_handling_redirects
+    ...<3 lines>...
+    )
+    ^
+  File "/home/severin/git/mure/.venv/lib/python3.14/site-packages/httpx2/_client.py", line 1645, in _send_handling_redirects
     response = await self._send_single_request(request)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/severin/git/mure/.venv/lib/python3.12/site-packages/httpx/_client.py", line 1763, in _send_single_request
+  File "/home/severin/git/mure/.venv/lib/python3.14/site-packages/httpx2/_client.py", line 1679, in _send_single_request
     response = await transport.handle_async_request(request)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/severin/git/mure/.venv/lib/python3.12/site-packages/httpx/_transports/default.py", line 372, in handle_async_request
+  File "/home/severin/git/mure/.venv/lib/python3.14/site-packages/httpx2/_transports/default.py", line 391, in handle_async_request
     with map_httpcore_exceptions():
-  File "/home/severin/.pyenv/versions/3.12.2/lib/python3.12/contextlib.py", line 158, in __exit__
+         ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/severin/.local/share/mise/installs/python/3.14.4/lib/python3.14/contextlib.py", line 162, in __exit__
     self.gen.throw(value)
-  File "/home/severin/git/mure/.venv/lib/python3.12/site-packages/httpx/_transports/default.py", line 86, in map_httpcore_exceptions
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "/home/severin/git/mure/.venv/lib/python3.14/site-packages/httpx2/_transports/default.py", line 118, in map_httpcore_exceptions
     raise mapped_exc(message) from exc
-httpx.UnsupportedProtocol: Request URL is missing an 'http://' or 'https://' protocol.
+httpx2.UnsupportedProtocol: Request URL is missing an 'http://' or 'https://' protocol.
 <Response(0, UnsupportedProtocol("Request URL is missing an 'http://' or 'https://' protocol."))>
 ```
 
