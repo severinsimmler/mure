@@ -41,7 +41,7 @@ Pass a list of dictionaries with at least a value for `url` and get a generator 
 {'url': 'invalid'} status code: 0
 ```
 
-The number of requests fired at the same time will never exceed `batch_size` – this is protected by a semaphore.
+The number of requests fired at the same time will never exceed `batch_size`. This is a rolling window, not a barrier: `batch_size` workers pull from a shared iterator of requests, so the next request is fired as soon as any one of the in-flight requests finishes – there is no waiting for the whole batch to complete. Responses are still yielded in the order of the resources you passed in.
 
 ### HTTP Methods
 
