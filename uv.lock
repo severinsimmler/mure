@@ -712,7 +712,7 @@ wheels = [
 
 [[package]]
 name = "mure"
-version = "5.3.0"
+version = "5.3.2"
 source = { editable = "." }
 dependencies = [
     { name = "charset-normalizer" },

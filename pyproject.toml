@@ -1,6 +1,6 @@
 [project]
 name = "mure"
-version = "5.3.1"
+version = "5.3.2"
 description = "Perform multiple HTTP requests concurrently – without worrying about async/await."
 authors = [{ name = "Severin Simmler", email = "s.simmler@snapaddy.com" }]
 requires-python = ">=3.11"
