@@ -1,12 +1,12 @@
 import asyncio
 import contextlib
 import os
-from asyncio import CancelledError, Semaphore, TaskGroup
-from collections.abc import AsyncIterator
+from asyncio import CancelledError, TaskGroup
+from collections.abc import AsyncIterator, Iterator
 from types import TracebackType
 from typing import Self
 
-from httpx2 import AsyncClient
+from httpx2 import AsyncClient, Limits
 
 from mure.cache import Cache, get_storage
 from mure.logging import Logger
@@ -43,7 +43,6 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         self._storage = get_storage(cache)
         self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
         self._queue = Queue(self.num_requests)
-        self._semaphore = Semaphore(self.batch_size)
         self._task = None
 
     def __aiter__(self) -> Self:
@@ -155,13 +154,12 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         )
 
         try:
-            async with self._semaphore:
-                LOGGER.debug(f"Start firing request with priority {priority}")
+            LOGGER.debug(f"Start firing request with priority {priority}")
 
-                # send the request...
-                response = await session.send(_request, follow_redirects=session.follow_redirects)
+            # send the request...
+            response = await session.send(_request, follow_redirects=session.follow_redirects)
 
-                LOGGER.debug(f"Finished firing request with priority {priority}")
+            LOGGER.debug(f"Finished firing request with priority {priority}")
 
             # ...and read the content
             content = await response.aread()
@@ -194,30 +192,47 @@ class AsyncResponseIterator(AsyncIterator[Response]):
 
         return response
 
-    async def _afetch_response(
+    async def _afetch_responses_worker(
         self,
         session: AsyncClient,
-        priority: int,
-        request: Request,
+        requests: Iterator[tuple[int, Request]],
     ):
-        """Fetch a single response.
+        """Fetch responses until the shared iterator of requests is exhausted.
+
+        Pulling from a shared iterator instead of scheduling one task per request keeps
+        the number of pending tasks (and pre-built HTTP requests) bounded by the batch
+        size, so the first response does not have to wait for all requests to be set up.
 
         Parameters
         ----------
         session : AsyncClient
             HTTP session to use.
-        priority : int
-            Priority of the request.
-        request : Request
-            Resource to request.
+        requests : Iterator[tuple[int, Request]]
+            Shared iterator yielding the priority and the resource to request.
         """
-        response = await self._asend_request(session, request, priority)
+        # pulling from the iterator is atomic, because there is no await in between
+        for priority, request in requests:
+            LOGGER.debug(f"Scheduling request with priority {priority}")
 
-        await self._queue.put(priority, response)
+            response = await self._asend_request(session, request, priority)
+
+            await self._queue.put(priority, response)
 
     async def _afetch_responses(self):
         """Fetch all responses concurrently."""
-        async with AsyncClient(follow_redirects=True, http2=True) as session, TaskGroup() as tg:
-            for priority, request in enumerate(self.requests):
-                LOGGER.debug(f"Scheduling request with priority {priority}")
-                tg.create_task(self._afetch_response(session, priority, request))
+        # shared by all workers, so that at most batch_size requests are in flight
+        requests = iter(enumerate(self.requests))
+
+        # the default pool would cap concurrency at 100 connections (20 kept alive),
+        # regardless of the batch size
+        limits = Limits(
+            max_connections=self.batch_size,
+            max_keepalive_connections=self.batch_size,
+        )
+
+        async with (
+            AsyncClient(follow_redirects=True, http2=True, limits=limits) as session,
+            TaskGroup() as tg,
+        ):
+            for _ in range(min(self.batch_size, self.num_requests)):
+                tg.create_task(self._afetch_responses_worker(session, requests))
