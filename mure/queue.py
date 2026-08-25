@@ -13,6 +13,16 @@ class Queue:
         self._event = Event()
         self._error: BaseException | None = None
 
+    @property
+    def is_empty(self) -> bool:
+        """Whether the queue is empty."""
+        return not self._responses
+
+    @property
+    def is_exhausted(self) -> bool:
+        """Whether all responses have been consumed."""
+        return self._next >= self.total_size
+
     async def put(self, priority: int, response: Response):
         """Add an item to the queue.
 
@@ -67,7 +77,3 @@ class Queue:
         self._next += 1
 
         return response
-
-    def empty(self) -> bool:
-        """Whether the queue is empty."""
-        return not self._responses
