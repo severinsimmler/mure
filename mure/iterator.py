@@ -1,7 +1,7 @@
 import asyncio
 import contextlib
 import os
-from asyncio import CancelledError, TaskGroup
+from asyncio import CancelledError, Task, TaskGroup
 from collections.abc import AsyncIterator, Iterator
 from types import TracebackType
 from typing import Self
@@ -112,11 +112,29 @@ class AsyncResponseIterator(AsyncIterator[Response]):
 
         if self._task is None:
             self._task = asyncio.create_task(self._afetch_responses())
+            self._task.add_done_callback(self._abort_on_error)
 
         if self._task.done() and self._queue.empty():
             return None
 
         return await self._queue.get_next()
+
+    def _abort_on_error(self, task: Task):
+        """Unblock the queue if fetching the responses failed.
+
+        Without this, an exception in the fetching task would leave the consumer
+        waiting for a response that is never going to arrive.
+
+        Parameters
+        ----------
+        task : Task
+            The finished task that fetched the responses.
+        """
+        if task.cancelled():
+            return
+
+        if error := task.exception():
+            self._queue.abort(error)
 
     async def _asend_request(
         self,
@@ -143,17 +161,17 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         if self._storage is not None and (response := await self._storage.aget_response(request)):
             return response
 
-        _request = session.build_request(
-            method=request.method,
-            url=request.url,
-            data=request.data,
-            json=request.json,
-            params=request.params,
-            headers=request.headers,
-            timeout=request.timeout or 30,
-        )
-
         try:
+            _request = session.build_request(
+                method=request.method,
+                url=request.url,
+                data=request.data,
+                json=request.json,
+                params=request.params,
+                headers=request.headers,
+                timeout=request.timeout or 30,
+            )
+
             LOGGER.debug(f"Start firing request with priority {priority}")
 
             # send the request...
