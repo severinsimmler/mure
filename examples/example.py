@@ -17,10 +17,10 @@ resources: list[Resource] = [
 ]
 
 print("START FIRST RUN")
-for i, response in enumerate(mure.get(resources, batch_size=5, cache=Cache.MEMORY)):
+for i, response in enumerate(mure.get(resources, batch_size=5, cache=Cache.SQLITE)):
     LOGGER.info(f"Received response {i} from {response.url}: {response.status}")
 
 print("\nSTART SECOND RUN")
 # super fast, because responses are cached
-for i, response in enumerate(mure.get(resources, batch_size=5, cache=Cache.MEMORY)):
+for i, response in enumerate(mure.get(resources, batch_size=5, cache=Cache.SQLITE)):
     LOGGER.info(f"Received response {i} from {response.url}: {response.status}")
