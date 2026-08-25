@@ -13,6 +13,12 @@ Method = Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"]
 # json serializable types
 Serializable = dict | list | str | int | float | bool | None
 
+# request timeout in seconds used if a resource does not specify a valid one
+DEFAULT_TIMEOUT = 10
+
+# no request is allowed to wait longer than this, no matter what the resource says
+MAX_TIMEOUT = 30
+
 
 class Resource(TypedDict):
     """Resource to request."""
@@ -43,7 +49,9 @@ class Request:
     json : Serializable, optional
         JSON request body, by default None.
     timeout : int | None, optional
-        Request timeout in seconds, by default 10.
+        Request timeout in seconds, by default 10. Clamped to at most 30 seconds; None
+        (or any non-positive value) falls back to the default, so a request can never be
+        sent without a timeout.
     """
 
     def __init__(
@@ -55,11 +63,11 @@ class Request:
         params: Mapping[str, str] | None = None,
         data: Any | None = None,
         json: Any | None = None,
-        timeout: int | None = 10,
+        timeout: int | None = DEFAULT_TIMEOUT,
     ):
         self.data = data
         self.json = json
-        self.timeout = timeout
+        self.timeout = self._clamp_timeout(timeout)
         self._method = method
         self._url = url
         self._headers = headers
@@ -139,6 +147,26 @@ class Request:
         )
 
         return hashlib.sha256(data).hexdigest()
+
+    @staticmethod
+    def _clamp_timeout(timeout: int | None) -> int:
+        """Return a timeout that is always set and never exceeds the maximum.
+
+        Parameters
+        ----------
+        timeout : int | None
+            Requested timeout in seconds.
+
+        Returns
+        -------
+        int
+            The requested timeout, capped at `MAX_TIMEOUT`, or `DEFAULT_TIMEOUT` if
+            None or not positive.
+        """
+        if timeout is None or timeout <= 0:
+            return DEFAULT_TIMEOUT
+
+        return min(timeout, MAX_TIMEOUT)
 
     def _normalize(self, value: Any) -> Any:
         """Normalize a value for hashing.

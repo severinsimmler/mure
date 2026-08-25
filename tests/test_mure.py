@@ -2,7 +2,7 @@ import pytest
 from orjson import JSONDecodeError
 
 import mure
-from mure.models import Resource, Response
+from mure.models import DEFAULT_TIMEOUT, MAX_TIMEOUT, Request, Resource, Response
 
 
 @pytest.mark.xfail(reason="httpbin.org is sometimes down")
@@ -47,3 +47,23 @@ def test_json():
 def test_invalid_json():
     with pytest.raises(JSONDecodeError):
         next(mure.get([{"url": "https://wikipedia.org"}])).json()
+
+
+@pytest.mark.parametrize(
+    ("timeout", "expected"),
+    [
+        (None, DEFAULT_TIMEOUT),
+        (0, DEFAULT_TIMEOUT),
+        (-1, DEFAULT_TIMEOUT),
+        (1, 1),
+        (MAX_TIMEOUT, MAX_TIMEOUT),
+        (MAX_TIMEOUT + 1, MAX_TIMEOUT),
+        (600, MAX_TIMEOUT),
+    ],
+)
+def test_timeout(timeout: int | None, expected: int):
+    assert Request("GET", "https://httpbin.org/get", timeout=timeout).timeout == expected
+
+
+def test_default_timeout():
+    assert Request("GET", "https://httpbin.org/get").timeout == DEFAULT_TIMEOUT

@@ -38,7 +38,7 @@ def delete(
                     params=resource.get("params"),
                     data=resource.get("data"),
                     json=resource.get("json"),
-                    timeout=resource.get("timeout", 10),
+                    timeout=resource.get("timeout"),
                 )
                 for resource in resources
             ],
@@ -81,7 +81,7 @@ def get(
                     params=resource.get("params"),
                     data=resource.get("data"),
                     json=resource.get("json"),
-                    timeout=resource.get("timeout", 10),
+                    timeout=resource.get("timeout"),
                 )
                 for resource in resources
             ],
@@ -124,7 +124,7 @@ def head(
                     params=resource.get("params"),
                     data=resource.get("data"),
                     json=resource.get("json"),
-                    timeout=resource.get("timeout", 10),
+                    timeout=resource.get("timeout"),
                 )
                 for resource in resources
             ],
@@ -167,7 +167,7 @@ def patch(
                     params=resource.get("params"),
                     data=resource.get("data"),
                     json=resource.get("json"),
-                    timeout=resource.get("timeout", 10),
+                    timeout=resource.get("timeout"),
                 )
                 for resource in resources
             ],
@@ -210,7 +210,7 @@ def post(
                     params=resource.get("params"),
                     data=resource.get("data"),
                     json=resource.get("json"),
-                    timeout=resource.get("timeout", 10),
+                    timeout=resource.get("timeout"),
                 )
                 for resource in resources
             ],
@@ -253,7 +253,7 @@ def put(
                     params=resource.get("params"),
                     data=resource.get("data"),
                     json=resource.get("json"),
-                    timeout=resource.get("timeout", 10),
+                    timeout=resource.get("timeout"),
                 )
                 for resource in resources
             ],

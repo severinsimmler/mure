@@ -188,7 +188,7 @@ class AsyncResponseIterator(AsyncIterator[Response]):
                 json=request.json,
                 params=request.params,
                 headers=request.headers,
-                timeout=request.timeout or 30,
+                timeout=request.timeout,
             )
 
             LOGGER.debug(f"Start firing request with priority {priority}")
