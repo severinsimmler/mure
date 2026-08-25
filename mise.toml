@@ -2,7 +2,7 @@
 uv = "latest"
 
 [settings.python]
-uv_venv_auto = true
+uv_venv_auto = "create|source"
 
 [tasks.setup]
 description = "Run the initial project setup"
