@@ -43,6 +43,47 @@ Pass a list of dictionaries with at least a value for `url` and get a generator 
 
 The number of requests fired at the same time will never exceed `batch_size`. This is a rolling window, not a barrier: `batch_size` workers pull from a shared iterator of requests, so the next request is fired as soon as any one of the in-flight requests finishes – there is no waiting for the whole batch to complete. Responses are still yielded in the order of the resources you passed in.
 
+Nothing happens until you start consuming the generator, and if you stop early (e.g. by
+breaking out of the loop), the requests that have not been fired yet are cancelled:
+
+```python
+>>> responses = mure.get(resources)  # nothing fired yet
+>>> for response in responses:
+...     if response.ok:
+...         break  # the remaining resources are never requested
+```
+
+Redirects are followed and HTTP/2 is enabled by default. The connection pool is sized to
+`batch_size`, so the number of open connections is bounded as well.
+
+### Resources
+
+A resource is a dictionary with at least a `url`. All other keys are optional:
+
+| Key | Type | Description |
+| --- | --- | --- |
+| `url` | `str` | URL to request (required). |
+| `headers` | `Mapping[str, str] \| None` | HTTP headers. |
+| `params` | `Mapping[str, str] \| None` | URL parameters, merged with any query string already in `url`. |
+| `data` | JSON serializable | Request body. |
+| `json` | JSON serializable | JSON request body. |
+| `timeout` | `int \| None` | Request timeout in seconds, by default 10, at most 30. |
+
+```python
+>>> resources = [
+...     {
+...         "url": "https://httpbin.org/post",
+...         "headers": {"Authorization": "Bearer token"},
+...         "params": {"foo": "bar"},
+...         "json": {"lorem": "ipsum"},
+...         "timeout": 30,
+...     },
+... ]
+```
+
+A request is never sent without a timeout: values greater than 30 seconds are capped at
+30, and `None` (or a non-positive value) falls back to the default of 10 seconds.
+
 ### HTTP Methods
 
 There are convenience functions for GET, POST, HEAD, PUT, PATCH and DELETE requests, for example:
@@ -55,6 +96,37 @@ There are convenience functions for GET, POST, HEAD, PUT, PATCH and DELETE reque
 ... ]
 >>> responses = mure.post(resources)
 ```
+
+### Responses
+
+Each response has the following attributes:
+
+| Attribute | Type | Description |
+| --- | --- | --- |
+| `ok` | `bool` | True if the status code indicates success. |
+| `status` | `int` | HTTP status code (`0` if the request failed). |
+| `reason` | `str \| None` | HTTP status reason (the `repr()` of the exception if the request failed). |
+| `url` | `str` | Final URL after redirects. |
+| `content` | `bytes` | Raw response body. |
+| `encoding` | `str \| None` | Encoding reported by the server. |
+| `headers` | `dict[str, str]` | Response headers. |
+| `text` | `str` | Body decoded as text, falling back to encoding detection. |
+
+Use `response.json()` to parse the body as JSON.
+
+Requests never raise, which would otherwise interrupt the whole generator. A failed
+request (invalid URL, connection error, timeout, ...) is a regular response with `ok` set
+to `False`, `status` set to `0` and the exception in `reason`:
+
+```python
+>>> response = next(mure.get([{"url": "invalid"}]))
+>>> response.ok, response.status
+(False, 0)
+>>> response.reason
+'UnsupportedProtocol("Request URL is missing an \'http://\' or \'https://\' protocol.")'
+```
+
+So check `ok` (or `status`) rather than wrapping the loop in a `try`.
 
 ### Verbosity
 
@@ -129,7 +201,7 @@ You can enable caching to avoid requesting the same resources over and over agai
 >>> responses = mure.post(resources, cache=Cache.SQLITE)
 ```
 
-This will make only two requests and use the hit from the cache for the last resource. The responses are stored in a local SQLite database `.mure-cache.sqlite` in the current working directory.
+This will make only two requests and use the hit from the cache for the last resource. Two resources are considered identical if the SHA256 hash over their method, URL, headers, parameters and body matches, so a changing header (e.g. a fresh token) is enough to miss the cache. The `timeout` is not part of the hash. The responses are stored in a local SQLite database `.mure-cache.sqlite` in the current working directory.
 
 Note that you have to install [the SQLite extras](https://github.com/severinsimmler/mure/blob/master/pyproject.toml#L14-L17).
 
