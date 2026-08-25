@@ -110,7 +110,7 @@ class Request:
     @cached_property
     def params(self) -> dict[str, list[str]] | None:
         """Return the URL parameters of the request."""
-        params = parse_qs(self.url_parts.query)
+        params = parse_qs(self.url_parts.query, keep_blank_values=True)
 
         if self._params is None and not params:
             return None

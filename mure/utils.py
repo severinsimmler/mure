@@ -1,7 +1,9 @@
 import asyncio
+import contextlib
+from asyncio import CancelledError
 from collections.abc import Generator
 from queue import SimpleQueue
-from threading import Thread
+from threading import Event, Thread
 
 from mure.cache import Cache
 from mure.iterator import AsyncResponseIterator
@@ -31,27 +33,61 @@ def fetch_responses(
         The server's response for each request.
     """
     # queue to communicate between the async thread and the generator
-    queue: SimpleQueue[Response | None] = SimpleQueue()
+    queue: SimpleQueue[Response | BaseException | None] = SimpleQueue()
+
+    # set as soon as the event loop and its main task are known
+    started = Event()
+    context: dict = {}
 
     async def main():
-        async for response in AsyncResponseIterator(requests, batch_size=batch_size, cache=cache):
-            queue.put(response)
+        context["loop"] = asyncio.get_running_loop()
+        context["task"] = asyncio.current_task()
+        started.set()
 
-        # signal that we're done
-        queue.put(None)
+        try:
+            async with AsyncResponseIterator(
+                requests,
+                batch_size=batch_size,
+                cache=cache,
+            ) as responses:
+                async for response in responses:
+                    queue.put(response)
+        except CancelledError:
+            # the generator was closed before all responses were consumed
+            pass
+        except BaseException as error:
+            # re-raise in the consuming thread instead of blocking it forever
+            queue.put(error)
+        finally:
+            # signal that we're done
+            queue.put(None)
 
     def run_main():
         asyncio.run(main())
 
-    # run the async main function in a separate thread
-    thread = Thread(target=run_main)
+    # run the async main function in a separate thread; it is a daemon so that a
+    # crashed or wedged event loop can never keep the interpreter alive
+    thread = Thread(target=run_main, daemon=True)
     thread.start()
 
-    while True:
-        response = queue.get()
+    try:
+        while True:
+            response = queue.get()
 
-        # no more responses to fetch
-        if response is None:
-            break
+            # no more responses to fetch
+            if response is None:
+                break
 
-        yield response
+            if isinstance(response, BaseException):
+                raise response
+
+            yield response
+    finally:
+        # the consumer may abandon the generator early (e.g. by breaking out of the
+        # loop), in which case the remaining requests must not be fired anymore
+        if started.wait(timeout=5):
+            # RuntimeError is raised if the generator is only collected at interpreter shutdown;
+            # the thread is a daemon, so leaving it running is fine in that case
+            with contextlib.suppress(RuntimeError):
+                context["loop"].call_soon_threadsafe(context["task"].cancel)
+                thread.join()
