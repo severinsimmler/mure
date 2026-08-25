@@ -5,7 +5,10 @@ from pathlib import Path
 
 import orjson
 
+from mure.logging import Logger
 from mure.models import Request, Response
+
+LOGGER = Logger(__name__)
 
 
 class Storage(ABC):
@@ -107,19 +110,22 @@ class SQLiteStorage(Storage):
             Response to save.
         """
         async with self._lock:
-            await self._db.aexecute(
-                self._queries["save_response"],
-                params={
-                    "key": request.sha256(),
-                    "url": response.url,
-                    "headers": orjson.dumps(response.headers).decode("utf-8"),
-                    "status": response.status,
-                    "ok": response.ok,
-                    "reason": response.reason,
-                    "content": response.content,
-                    "encoding": response.encoding,
-                },
-            )
+            try:
+                await self._db.aexecute(
+                    self._queries["save_response"],
+                    params={
+                        "key": request.sha256(),
+                        "url": response.url,
+                        "headers": orjson.dumps(response.headers).decode("utf-8"),
+                        "status": response.status,
+                        "ok": response.ok,
+                        "reason": response.reason,
+                        "content": response.content,
+                        "encoding": response.encoding,
+                    },
+                )
+            except Exception as error:
+                LOGGER.warning(f"Failed to save response for {request.url}: {error}")
 
     async def aget_response(self, request: Request) -> Response | None:
         """Get a cached response for a request.
@@ -135,19 +141,22 @@ class SQLiteStorage(Storage):
             Cached response, or None if not found.
         """
         async with self._lock:
-            if record := await self._db.afetch_one(
-                self._queries["get_response"],
-                params={"key": request.sha256()},
-            ):
-                return Response(
-                    ok=bool(record["ok"]),
-                    status=record["status"],
-                    reason=record["reason"],
-                    url=record["url"],
-                    content=record["content"],
-                    encoding=record["encoding"],
-                    headers=orjson.loads(record["headers"]),
-                )
+            try:
+                if record := await self._db.afetch_one(
+                    self._queries["get_response"],
+                    params={"key": request.sha256()},
+                ):
+                    return Response(
+                        ok=bool(record["ok"]),
+                        status=record["status"],
+                        reason=record["reason"],
+                        url=record["url"],
+                        content=record["content"],
+                        encoding=record["encoding"],
+                        headers=orjson.loads(record["headers"]),
+                    )
+            except Exception as error:
+                LOGGER.warning(f"Failed to get response for {request.url}: {error}")
 
         return None
 
