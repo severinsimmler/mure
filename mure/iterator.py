@@ -44,6 +44,7 @@ class AsyncResponseIterator(AsyncIterator[Response]):
         self._log_errors = bool(os.environ.get("MURE_LOG_ERRORS"))
         self._queue = Queue(self.num_requests)
         self._task = None
+        self._is_cleaned_up = False
 
     def __aiter__(self) -> Self:
         """Return the async iterator."""
@@ -85,13 +86,31 @@ class AsyncResponseIterator(AsyncIterator[Response]):
 
     async def acleanup(self):
         """Clean up resources."""
+        if self._is_cleaned_up:
+            return
+
+        self._is_cleaned_up = True
+
         if self._task and not self._task.done():
-            self._task.cancel()
+            # if every response has been consumed, the task is only closing its HTTP
+            # session, which should not be interrupted
+            if not self._queue.is_exhausted:
+                self._task.cancel()
+
             with contextlib.suppress(CancelledError):
                 await self._task
 
         if self._storage is not None:
-            await self._storage.acleanup()
+            # the consumer may stop iterating at any time (e.g. by breaking out of the
+            # loop), which cancels this task; closing the storage must not be
+            # interrupted halfway through, otherwise connections are left dangling
+            task = asyncio.create_task(self._storage.acleanup())
+
+            try:
+                await asyncio.shield(task)
+            except CancelledError:
+                await task
+                raise
 
     async def aconsume_next_response(self) -> Response | None:
         """Consume the next response.
@@ -114,7 +133,7 @@ class AsyncResponseIterator(AsyncIterator[Response]):
             self._task = asyncio.create_task(self._afetch_responses())
             self._task.add_done_callback(self._abort_on_error)
 
-        if self._task.done() and self._queue.empty():
+        if self._task.done() and self._queue.is_empty:
             return None
 
         return await self._queue.get_next()

@@ -70,12 +70,14 @@ def fetch_responses(
     thread = Thread(target=run_main, daemon=True)
     thread.start()
 
+    is_finished = False
     try:
         while True:
             response = queue.get()
 
             # no more responses to fetch
             if response is None:
+                is_finished = True
                 break
 
             if isinstance(response, BaseException):
@@ -89,5 +91,9 @@ def fetch_responses(
             # RuntimeError is raised if the generator is only collected at interpreter shutdown;
             # the thread is a daemon, so leaving it running is fine in that case
             with contextlib.suppress(RuntimeError):
-                context["loop"].call_soon_threadsafe(context["task"].cancel)
+                if not is_finished:
+                    # cancelling once everything has been fetched would interrupt the
+                    # clean shutdown (e.g. closing the cache's database connection)
+                    context["loop"].call_soon_threadsafe(context["task"].cancel)
+
                 thread.join()
