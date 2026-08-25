@@ -19,10 +19,13 @@ class Logger:
         self._logger = getLogger(name)
         self._formatter = Formatter("[%(asctime)s] [%(levelname)s] %(message)s")
 
-        # stream handler to stdout
+        # stream handler to stdout, added only once per underlying logger so that
+        # instantiating Logger repeatedly does not duplicate every message
         self._stream_handler = StreamHandler(sys.stdout)
         self._stream_handler.setFormatter(self._formatter)
-        self._logger.addHandler(self._stream_handler)
+
+        if not any(isinstance(h, StreamHandler) for h in self._logger.handlers):
+            self._logger.addHandler(self._stream_handler)
 
         # set level of both the logger and the handler to INFO by default
         self.set_level("INFO")
